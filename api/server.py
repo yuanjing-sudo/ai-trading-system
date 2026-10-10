@@ -25,6 +25,7 @@ from predictor.bridge import PredictorBridge
 from predictor.engine import PredictorConfig, PredictionTarget, REGIME_NAMES
 from crypto.bridge import CryptoPredictorBridge
 from crypto.engine import CryptoPredictorConfig, CryptoPredictionTarget
+from models.improved_ensemble import ImprovedEnsemble, CrossSectionalEnsemble, RegimeSpecificEnsemble
 from utils.logger import setup_logger
 
 logger = setup_logger("API", "INFO")
@@ -850,9 +851,57 @@ async def ai_assistant(request: dict):
         return {"answer": f"Error processing your question: {str(e)}. Please try again.", "question": question}
 
 
+@app.get("/api/improved/{symbol}")
+async def improved_analysis(
+    symbol: str,
+    asset_class: str = "stocks",
+    start: str = "2022-01-01",
+    end: str = "2024-12-31",
+    label_type: str = "direction",
+):
+    symbol = _resolve_symbol(symbol)
+    try:
+        price_data = _fetcher.fetch([symbol], start, end)
+        if not price_data:
+            raise HTTPException(status_code=404, detail=f"No data found for {symbol}")
+
+        if asset_class == "crypto":
+            bench_data = _fetcher.fetch(["BTC-USD"], start, end)
+            benchmark = bench_data.get("BTC-USD", pd.DataFrame())
+            if benchmark.empty:
+                benchmark = _fetcher.fetch_benchmark("SPY", start, end)
+            bridge = _get_crypto_bridge([symbol], start, end)
+        else:
+            benchmark = _fetcher.fetch_benchmark("SPY", start, end)
+            bridge = _get_bridge([symbol], start, end)
+
+        preds = bridge.predict(price_data, benchmark)
+        signals = bridge.get_signals_df()
+        metrics = bridge.metrics_report()
+        mstate = bridge.get_market_state(benchmark)
+        imp = bridge.feature_importance(top_k=20)
+        feature_importance = [{"feature": k, "importance": float(v)} for k, v in imp.items()]
+
+        return {
+            "symbol": symbol.upper(),
+            "asset_class": asset_class,
+            "predictions": preds.to_dict("records") if not preds.empty else [],
+            "signals": signals.to_dict("records") if not signals.empty else [],
+            "metrics": metrics.to_dict("records") if not metrics.empty else [],
+            "market_state": mstate,
+            "feature_importance": feature_importance,
+            "improved": True,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Improved analysis failed for {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "version": "3.2.0"}
+    return {"status": "ok", "version": "3.3.0"}
 
 
 def start():

@@ -988,6 +988,51 @@
                     container.innerHTML = renderAlgorithmAnalysis(analysis) + container.innerHTML;
                 }
             });
+            loadImprovedPredictions(data.symbol).then(pred => {
+                if (pred && pred.improved) {
+                    const impHtml = `
+                        <div class="card">
+                            <h2>Improved Model</h2>
+                            <div class="metrics-grid">
+                                <div class="metric-item"><div class="metric-value">${(pred.market_state && pred.market_state.regime ? pred.market_state.regime.replace(/_/g, ' ') : 'unknown')}</div><div class="metric-label">Regime</div></div>
+                                <div class="metric-item"><div class="metric-value">${(pred.metrics && pred.metrics.length > 0 ? (pred.metrics[0].auc * 100).toFixed(1) : 'N/A')}%</div><div class="metric-label">AUC</div></div>
+                            </div>
+                            ${pred.predictions && pred.predictions.length > 0 ? `
+                            <div class="card">
+                                <h2>Improved Multi-Horizon Predictions</h2>
+                                <table>
+                                    <thead><tr><th>Horizon</th><th>Prob Up</th><th>Exp Return</th><th>Confidence</th><th>Uncertainty</th></tr></thead>
+                                    <tbody>
+                                        ${pred.predictions.map(p => `
+                                            <tr>
+                                                <td>${p.horizon}d</td>
+                                                <td style="color:${p.probability_up > 0.5 ? '#22c55e' : '#ef4444'}">${(p.probability_up * 100).toFixed(1)}%</td>
+                                                <td>${(p.expected_return * 100).toFixed(2)}%</td>
+                                                <td>${(p.confidence * 100).toFixed(0)}%</td>
+                                                <td>${(p.uncertainty * 100).toFixed(1)}%</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                            ` : ''}
+                            ${pred.feature_importance && pred.feature_importance.length > 0 ? `
+                            <div class="card">
+                                <h2>Top Feature Importance (Improved)</h2>
+                                ${pred.feature_importance.slice(0, 10).map(f => `
+                                    <div class="feature-bar">
+                                        <div class="feature-name">${f.feature}</div>
+                                        <div class="feature-bar-bg"><div class="feature-bar-fill" style="width:${(Math.abs(f.importance) / Math.max(...pred.feature_importance.map(x => Math.abs(x.importance))) * 100).toFixed(1)}%;"></div></div>
+                                        <div class="feature-value">${f.importance.toFixed(4)}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            ` : ''}
+                        </div>
+                    `;
+                    document.getElementById('advancedContainer').innerHTML = impHtml + document.getElementById('advancedContainer').innerHTML;
+                }
+            });
         }
 
         function renderMarkdown(text) {
@@ -1038,6 +1083,16 @@
         async function loadAlgorithmAnalysis(symbol) {
             try {
                 const res = await fetch(`${API_BASE}/api/algorithm_analysis/${symbol}?asset_class=${currentTab}`);
+                if (!res.ok) return null;
+                return await res.json();
+            } catch (e) {
+                return null;
+            }
+        }
+
+        async function loadImprovedPredictions(symbol) {
+            try {
+                const res = await fetch(`${API_BASE}/api/improved/${symbol}?asset_class=${currentTab}`);
                 if (!res.ok) return null;
                 return await res.json();
             } catch (e) {
