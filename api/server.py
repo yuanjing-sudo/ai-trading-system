@@ -228,8 +228,10 @@ def _get_crypto_bridge(symbols: List[str], start: str, end: str) -> CryptoPredic
 
 async def _fetch_crypto_indicators() -> Dict:
     try:
-        btc = _fetcher.fetch(["BTC-USD"], "2023-01-01", "2024-12-31")
-        total = _fetcher.fetch(["BTC-USD", "ETH-USD"], "2023-01-01", "2024-12-31")
+        end_date = "2026-10-01"
+        start_date = "2024-10-01"
+        btc = _fetcher.fetch(["BTC-USD"], start_date, end_date)
+        total = _fetcher.fetch(["BTC-USD", "ETH-USD"], start_date, end_date)
         btc_df = btc.get("BTC-USD", pd.DataFrame())
         eth_df = total.get("ETH-USD", pd.DataFrame())
         if btc_df.empty or eth_df.empty:
@@ -258,8 +260,8 @@ async def _fetch_crypto_indicators() -> Dict:
             "btc_30d_return": float(btc_30d * 100),
             "eth_30d_return": float(eth_30d * 100),
             "total_market_cap_trend": "up" if btc_30d > 0 else "down",
-            "fear_greed_index": 50,  # placeholder - would use alternative API
-            "total_supply": "N/A",  # would use coin-specific API
+            "fear_greed_index": 50,
+            "total_supply": "N/A",
             "circulating_supply": "N/A",
             "staking_apy": "N/A",
             "tvl": "N/A",
@@ -281,7 +283,11 @@ async def _fetch_tokenomics(symbol: str) -> Dict:
 
 async def _fetch_forex_indicators(symbol: str) -> Dict:
     try:
-        df = _fetcher.fetch([symbol.replace("=X", "-USD") if symbol.endswith("=X") else symbol], "2024-01-01", "2024-12-31")
+        import yfinance as yf
+        end_date = "2026-10-01"
+        start_date = "2024-10-01"
+        pair = symbol.replace("=X", "-USD") if symbol.endswith("=X") else symbol
+        df = _fetcher.fetch([pair], start_date, end_date)
         d = list(df.values())[0] if df else pd.DataFrame()
         if d.empty:
             return {}
@@ -289,12 +295,19 @@ async def _fetch_forex_indicators(symbol: str) -> Dict:
         ma50 = float(d["close"].rolling(50).mean().iloc[-1])
         ma200 = float(d["close"].rolling(200).mean().iloc[-1])
         vol = float(d["close"].pct_change().rolling(20).std().iloc[-1] * 100)
+        ticker = yf.Ticker(pair)
+        info = ticker.info
         return {
             "current_rate": price,
             "trend": "up" if price > ma50 > ma200 else "down" if price < ma50 < ma200 else "mixed",
             "ma50": ma50,
             "ma200": ma200,
             "volatility_20d": vol,
+            "pip_change_24h": float(d["close"].pct_change().iloc[-1] * 10000) if len(d) > 1 else 0,
+            "spread": "0.0001",
+            "interest_rate_diff": float(info.get("interestRate", 0) * 100) if info.get("interestRate") else 0,
+            "carry_trade": "positive" if (info.get("riskFreeRate", 0) or 0) > 0 else "negative",
+            "52_week_change": float(d["close"].pct_change(252).iloc[-1] * 100) if len(d) > 252 else 0,
         }
     except Exception:
         return {}
@@ -302,7 +315,10 @@ async def _fetch_forex_indicators(symbol: str) -> Dict:
 
 async def _fetch_commodity_indicators(symbol: str) -> Dict:
     try:
-        df = _fetcher.fetch([symbol], "2024-01-01", "2024-12-31")
+        import yfinance as yf
+        end_date = "2026-10-01"
+        start_date = "2024-10-01"
+        df = _fetcher.fetch([symbol], start_date, end_date)
         d = list(df.values())[0] if df else pd.DataFrame()
         if d.empty:
             return {}
@@ -310,6 +326,8 @@ async def _fetch_commodity_indicators(symbol: str) -> Dict:
         ma50 = float(d["close"].rolling(50).mean().iloc[-1])
         ma200 = float(d["close"].rolling(200).mean().iloc[-1])
         vol = float(d["close"].pct_change().rolling(20).std().iloc[-1] * 100)
+        ticker = yf.Ticker(symbol)
+        info = ticker.info
         return {
             "current_price": price,
             "trend": "up" if price > ma50 > ma200 else "down" if price < ma50 < ma200 else "mixed",
@@ -317,6 +335,10 @@ async def _fetch_commodity_indicators(symbol: str) -> Dict:
             "ma200": ma200,
             "volatility_20d": vol,
             "contango_backwardation": "contango" if price < ma50 else "backwardation",
+            "52_week_high": float(info.get("52WeekHigh", 0)) if info.get("52WeekHigh") else 0,
+            "52_week_low": float(info.get("52WeekLow", 0)) if info.get("52WeekLow") else 0,
+            "volume": float(d["volume"].iloc[-1]) if len(d) > 0 else 0,
+            "open_interest": "N/A",
         }
     except Exception:
         return {}
@@ -325,7 +347,9 @@ async def _fetch_commodity_indicators(symbol: str) -> Dict:
 async def _fetch_etf_indicators(symbol: str) -> Dict:
     try:
         import yfinance as yf
-        df = _fetcher.fetch([symbol], "2024-01-01", "2024-12-31")
+        end_date = "2026-10-01"
+        start_date = "2024-10-01"
+        df = _fetcher.fetch([symbol], start_date, end_date)
         d = list(df.values())[0] if df else pd.DataFrame()
         if d.empty:
             return {}
@@ -744,9 +768,72 @@ async def correlation_matrix(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/algorithm_analysis/{symbol}")
+async def algorithm_analysis(
+    symbol: str,
+    asset_class: str = "stocks",
+    start: str = "2022-01-01",
+    end: str = "2024-12-31",
+):
+    from assistant import AlgorithmAnalyzer
+    symbol = _resolve_symbol(symbol)
+    try:
+        price_data = _fetcher.fetch([symbol], start, end)
+        if not price_data:
+            raise HTTPException(status_code=404, detail=f"No data found for {symbol}")
+
+        if asset_class == "crypto":
+            bench_data = _fetcher.fetch(["BTC-USD"], start, end)
+            benchmark = bench_data.get("BTC-USD", pd.DataFrame())
+            if benchmark.empty:
+                benchmark = _fetcher.fetch_benchmark("SPY", start, end)
+            bridge = _get_crypto_bridge([symbol], start, end)
+        else:
+            benchmark = _fetcher.fetch_benchmark("SPY", start, end)
+            bridge = _get_bridge([symbol], start, end)
+
+        preds = bridge.predict(price_data, benchmark)
+        signals = bridge.get_signals_df()
+        metrics = bridge.metrics_report()
+        mstate = bridge.get_market_state(benchmark)
+        imp = bridge.feature_importance(top_k=20)
+        feature_importance = [{"feature": k, "importance": float(v)} for k, v in imp.items()]
+
+        analyzer = AlgorithmAnalyzer()
+        analysis = analyzer.generate_full_analysis({
+            "predictions": preds.to_dict("records") if not preds.empty else [],
+            "signals": signals.to_dict("records") if not signals.empty else [],
+            "metrics": metrics.to_dict("records") if not metrics.empty else [],
+            "feature_importance": feature_importance,
+            "market_state": mstate,
+        })
+        return analysis
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Algorithm analysis failed for {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/assistant")
+async def ai_assistant(request: dict):
+    from assistant import AIAssistant
+    question = request.get("question", "")
+    context = request.get("context", {})
+    if not question:
+        raise HTTPException(status_code=400, detail="Question is required")
+    try:
+        assistant = AIAssistant()
+        answer = await assistant.ask(question, context)
+        return {"answer": answer, "question": question}
+    except Exception as e:
+        logger.error(f"Assistant failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "version": "3.1.0"}
+    return {"status": "ok", "version": "3.2.0"}
 
 
 def start():
