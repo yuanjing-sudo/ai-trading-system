@@ -492,12 +492,8 @@ def _analyze_sync(symbol: str, asset_class: str, currency: str, start: str, end:
             mstate = bridge.get_market_state(benchmark)
             imp = bridge.feature_importance(top_k=20)
             feature_importance = [{"feature": k, "importance": float(v)} for k, v in imp.items()]
-            asset_specific = asyncio.get_event_loop().run_until_complete(
-                _fetch_crypto_indicators()
-            )
-            asset_specific["tokenomics"] = asyncio.get_event_loop().run_until_complete(
-                _fetch_tokenomics(symbol)
-            )
+            asset_specific = asyncio.run(_fetch_crypto_indicators())
+            asset_specific["tokenomics"] = asyncio.run(_fetch_tokenomics(symbol))
         else:
             benchmark = _fetcher.fetch_benchmark("SPY", start, end)
             bridge = _get_bridge([symbol], start, end)
@@ -509,17 +505,11 @@ def _analyze_sync(symbol: str, asset_class: str, currency: str, start: str, end:
             feature_importance = [{"feature": k, "importance": float(v)} for k, v in imp.items()]
             asset_specific = {}
             if asset_class == "forex":
-                asset_specific = asyncio.get_event_loop().run_until_complete(
-                    _fetch_forex_indicators(symbol)
-                )
+                asset_specific = asyncio.run(_fetch_forex_indicators(symbol))
             elif asset_class == "commodities":
-                asset_specific = asyncio.get_event_loop().run_until_complete(
-                    _fetch_commodity_indicators(symbol)
-                )
+                asset_specific = asyncio.run(_fetch_commodity_indicators(symbol))
             elif asset_class == "etf":
-                asset_specific = asyncio.get_event_loop().run_until_complete(
-                    _fetch_etf_indicators(symbol)
-                )
+                asset_specific = asyncio.run(_fetch_etf_indicators(symbol))
 
         if "date" in preds.columns:
             preds["date"] = preds["date"].astype(str)
