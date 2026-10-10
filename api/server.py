@@ -539,6 +539,23 @@ async def analyze_symbol(
     return result
 
 
+def _run_async(coro):
+    """Run async coroutine from sync code, handling event loop properly."""
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # If loop is already running, create a new one
+            new_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(new_loop)
+            return new_loop.run_until_complete(coro)
+        return loop.run_until_complete(coro)
+    except RuntimeError:
+        # No event loop in current thread
+        new_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(new_loop)
+        return new_loop.run_until_complete(coro)
+
+
 def _analyze_sync(symbol: str, asset_class: str, currency: str, start: str, end: str) -> Dict:
     try:
         price_data = _fetcher.fetch([symbol], start, end)
@@ -573,13 +590,13 @@ def _analyze_sync(symbol: str, asset_class: str, currency: str, start: str, end:
             feature_importance = [{"feature": k, "importance": float(v)} for k, v in imp.items()]
             asset_specific = {}
             if asset_class == "forex":
-                asset_specific = asyncio.run(_fetch_forex_indicators(symbol))
+                asset_specific = _run_async(_fetch_forex_indicators(symbol))
             elif asset_class == "commodities":
-                asset_specific = asyncio.run(_fetch_commodity_indicators(symbol))
+                asset_specific = _run_async(_fetch_commodity_indicators(symbol))
             elif asset_class == "etf":
-                asset_specific = asyncio.run(_fetch_etf_indicators(symbol))
+                asset_specific = _run_async(_fetch_etf_indicators(symbol))
             elif asset_class == "stocks":
-                asset_specific = asyncio.run(_fetch_stock_indicators(symbol))
+                asset_specific = _run_async(_fetch_stock_indicators(symbol))
 
         if "date" in preds.columns:
             preds["date"] = preds["date"].astype(str)
