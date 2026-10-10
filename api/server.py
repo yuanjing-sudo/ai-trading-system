@@ -366,10 +366,20 @@ async def search_symbols(q: str = Query(..., min_length=1, max_length=50)):
     import yfinance as yf
     results = []
     seen = set()
+    q_upper = q.upper().strip()
+
+    resolved = _resolve_symbol(q_upper)
+    if resolved != q_upper and resolved not in seen:
+        seen.add(resolved)
+        results.append(SearchResult(
+            symbol=resolved, name=resolved, type="crypto", asset_class="crypto",
+            price=None, currency="USD"
+        ))
+
     try:
         try:
             tickers = yf.search(q)
-            for t in tickers[:15]:
+            for t in tickers[:20]:
                 sym = t.get("symbol", "")
                 if sym and sym not in seen:
                     seen.add(sym)
@@ -386,20 +396,31 @@ async def search_symbols(q: str = Query(..., min_length=1, max_length=50)):
                     ))
         except Exception:
             pass
+
         for universe, cls in [(CRYPTO_UNIVERSE, "crypto"), (ETF_UNIVERSE, "etf"),
                                (FOREX_UNIVERSE, "forex"), (COMMODITY_UNIVERSE, "commodities")]:
-            for sym in universe:
-                if q.lower() in sym.lower() and sym not in seen:
+            for sym in sorted(universe):
+                if q_upper in sym.upper() and sym not in seen:
                     seen.add(sym)
                     results.append(SearchResult(
                         symbol=sym, name=sym, type=cls, asset_class=cls,
                         price=None, currency="USD"
                     ))
+
+        for alias, resolved_sym in CRYPTO_ALIASES.items():
+            if q_upper in alias.upper() and resolved_sym not in seen:
+                seen.add(resolved_sym)
+                asset_cls = _classify_symbol(resolved_sym)
+                results.append(SearchResult(
+                    symbol=resolved_sym, name=resolved_sym, type=asset_cls,
+                    asset_class=asset_cls, price=None, currency="USD"
+                ))
+
         if not results:
             try:
                 t = yf.Ticker(q)
                 info = t.info
-                sym = info.get("symbol", q.upper())
+                sym = info.get("symbol", q_upper)
                 asset_cls = _classify_symbol(sym)
                 results.append(SearchResult(
                     symbol=sym,
@@ -410,14 +431,14 @@ async def search_symbols(q: str = Query(..., min_length=1, max_length=50)):
                     currency=info.get("currency", "USD"),
                 ))
             except Exception:
-                sym = q.upper()
+                sym = q_upper
                 results.append(SearchResult(
                     symbol=sym, name=sym, type="unknown",
                     asset_class=_classify_symbol(sym), price=None, currency="USD"
                 ))
     except Exception as e:
         logger.warning(f"Search failed: {e}")
-    return results[:30]
+    return results[:50]
 
 
 def _classify_symbol(symbol: str) -> str:

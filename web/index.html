@@ -111,6 +111,7 @@
         .search-section {
             max-width: 800px;
             margin: 0 auto 32px;
+            position: relative;
         }
         .search-box {
             display: flex;
@@ -128,6 +129,48 @@
         }
         .search-input:focus { border-color: #00d4ff; }
         .search-input::placeholder { color: #4b5563; }
+        .search-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #131a2a;
+            border: 1px solid #1e2a3a;
+            border-radius: 10px;
+            margin-top: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        .search-dropdown.show { display: block; }
+        .search-dropdown-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #1e2a3a;
+            transition: background 0.15s;
+        }
+        .search-dropdown-item:last-child { border-bottom: none; }
+        .search-dropdown-item:hover { background: rgba(0,212,255,0.08); }
+        .search-dropdown-item .sym { font-weight: 600; font-size: 14px; color: #e0e0e0; }
+        .search-dropdown-item .name { font-size: 12px; color: #6b7280; margin-top: 2px; }
+        .search-dropdown-item .type {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        .type-crypto { background: rgba(247,147,26,0.15); color: #f7931a; }
+        .type-etf { background: rgba(251,146,60,0.15); color: #fb923c; }
+        .type-forex { background: rgba(167,139,250,0.15); color: #a78bfa; }
+        .type-commodities { background: rgba(34,197,94,0.15); color: #22c55e; }
+        .type-stocks { background: rgba(0,212,255,0.15); color: #00d4ff; }
+        .type-unknown { background: rgba(107,114,128,0.15); color: #9ca3af; }
         .search-btn {
             padding: 14px 28px;
             font-size: 15px;
@@ -432,8 +475,12 @@
         <div class="content">
             <div class="search-section">
                 <div class="search-box">
-                    <input type="text" class="search-input" id="searchInput"
-                           placeholder="Search any stock, ETF, crypto, or forex..." autocomplete="off">
+                    <div style="flex:1;position:relative;">
+                        <input type="text" class="search-input" id="searchInput"
+                               placeholder="Search any stock, ETF, crypto, or forex..." autocomplete="off"
+                               oninput="onSearchInput(this.value)" onfocus="onSearchFocus(this.value)">
+                        <div class="search-dropdown" id="searchDropdown"></div>
+                    </div>
                     <button class="search-btn" id="searchBtn" onclick="analyze()">Analyze</button>
                 </div>
                 <div class="search-hint" id="searchHint">Search any ticker on yfinance. Try AAPL, BTC-USD, SPY, EURUSD=X, GC=F</div>
@@ -478,8 +525,73 @@
         };
 
         document.getElementById('searchInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') analyze();
+            if (e.key === 'Enter') {
+                const dropdown = document.getElementById('searchDropdown');
+                if (dropdown.classList.contains('show') && dropdown.children.length > 0) {
+                    selectSymbol(dropdown.children[0].dataset.symbol);
+                } else {
+                    analyze();
+                }
+            }
         });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-section')) {
+                document.getElementById('searchDropdown').classList.remove('show');
+            }
+        });
+
+        let searchTimeout;
+        async function onSearchInput(value) {
+            clearTimeout(searchTimeout);
+            if (!value || value.length < 1) {
+                document.getElementById('searchDropdown').classList.remove('show');
+                return;
+            }
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const res = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(value)}`);
+                    const data = await res.json();
+                    renderSearchDropdown(data);
+                } catch (e) {
+                    document.getElementById('searchDropdown').classList.remove('show');
+                }
+            }, 200);
+        }
+
+        async function onSearchFocus(value) {
+            if (value && value.length >= 1) {
+                try {
+                    const res = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(value)}`);
+                    const data = await res.json();
+                    renderSearchDropdown(data);
+                } catch (e) {}
+            }
+        }
+
+        function renderSearchDropdown(results) {
+            const dropdown = document.getElementById('searchDropdown');
+            if (!results || results.length === 0) {
+                dropdown.classList.remove('show');
+                return;
+            }
+            dropdown.innerHTML = results.map(r => `
+                <div class="search-dropdown-item" data-symbol="${r.symbol}" onclick="selectSymbol('${r.symbol}')">
+                    <div>
+                        <div class="sym">${r.symbol}</div>
+                        <div class="name">${r.name || r.symbol}</div>
+                    </div>
+                    <span class="type type-${r.asset_class || 'unknown'}">${r.asset_class || 'unknown'}</span>
+                </div>
+            `).join('');
+            dropdown.classList.add('show');
+        }
+
+        function selectSymbol(symbol) {
+            document.getElementById('searchInput').value = symbol;
+            document.getElementById('searchDropdown').classList.remove('show');
+            analyze();
+        }
 
         function switchTab(tab, el) {
             currentTab = tab;
