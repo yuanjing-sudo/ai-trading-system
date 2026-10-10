@@ -202,7 +202,8 @@ def _get_crypto_bridge(symbols: List[str], start: str, end: str) -> CryptoPredic
     cache_key = f"{','.join(sorted(symbols))}_{start}_{end}"
     if cache_key not in _crypto_bridge_cache:
         price_data = _fetcher.fetch(symbols, start, end)
-        benchmark = _fetcher.fetch(["BTC-USD"], start, end)
+        bench_data = _fetcher.fetch(["BTC-USD"], start, end)
+        benchmark = bench_data.get("BTC-USD", pd.DataFrame())
         if benchmark.empty:
             benchmark = _fetcher.fetch_benchmark("SPY", start, end)
         pred_cfg = CryptoPredictorConfig(
@@ -479,7 +480,8 @@ def _analyze_sync(symbol: str, asset_class: str, currency: str, start: str, end:
         ccy_sym = CURRENCY_SYMBOLS.get(currency, "$")
 
         if asset_class == "crypto":
-            benchmark = _fetcher.fetch(["BTC-USD"], start, end)
+            bench_data = _fetcher.fetch(["BTC-USD"], start, end)
+            benchmark = bench_data.get("BTC-USD", pd.DataFrame())
             if benchmark.empty:
                 benchmark = _fetcher.fetch_benchmark("SPY", start, end)
             bridge = _get_crypto_bridge([symbol], start, end)
