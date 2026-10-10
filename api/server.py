@@ -842,10 +842,12 @@ async def ai_assistant(request: dict):
     try:
         assistant = AIAssistant()
         answer = await assistant.ask(question, context)
+        if not answer:
+            answer = "I'm unable to process that question right now. Please try asking about predictions, risk, features, or market regime."
         return {"answer": answer, "question": question}
     except Exception as e:
         logger.error(f"Assistant failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"answer": f"Error processing your question: {str(e)}. Please try again.", "question": question}
 
 
 @app.get("/api/health")

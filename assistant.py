@@ -14,31 +14,30 @@ class AIAssistant:
         self.conversation_history: List[Dict[str, str]] = []
 
     async def ask(self, question: str, context: Optional[Dict] = None) -> str:
-        system_prompt = self._build_system_prompt(context)
         self.conversation_history.append({"role": "user", "content": question})
-        messages = [
-            {"role": "system", "content": system_prompt},
-            *self.conversation_history[-6:],
-        ]
         try:
             import httpx
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.post(
                     f"{self.base_url}/api/chat",
                     json={
                         "model": self.model,
-                        "messages": messages,
+                        "messages": [{"role": "system", "content": self._build_system_prompt(context)},
+                                     *self.conversation_history[-6:]],
                         "stream": False,
                     },
                 )
                 if resp.status_code == 200:
                     result = resp.json()
                     answer = result.get("message", {}).get("content", "")
-                    self.conversation_history.append({"role": "assistant", "content": answer})
-                    return answer
+                    if answer:
+                        self.conversation_history.append({"role": "assistant", "content": answer})
+                        return answer
         except Exception as e:
             logger.warning(f"Ollama assistant failed: {e}")
-            return self._fallback_response(question, context)
+        fallback = self._fallback_response(question, context)
+        self.conversation_history.append({"role": "assistant", "content": fallback})
+        return fallback
 
     def _build_system_prompt(self, context: Optional[Dict]) -> str:
         ctx = ""
@@ -76,6 +75,8 @@ Keep responses concise but informative. Format with markdown when helpful.{ctx}"
                 ms = context["market_state"]
                 return f"Current market regime: **{ms.get('regime', 'unknown')}** with risk multiplier {ms.get('risk_multiplier', 1.0):.2f}. Adjust exposure based on this regime."
             return "Market regime information is shown in the top bar. It affects the risk multiplier applied to predictions."
+        if any(w in q_lower for w in ["null", "none", "nothing", "unknown"]):
+            return "I couldn't find specific data for that query. Try asking about predictions, risk metrics, feature importance, or the current market regime."
         return "I can help you understand the analysis. Ask me about predictions, risk metrics, feature importance, market regime, or trading recommendations."
 
     def reset_conversation(self):

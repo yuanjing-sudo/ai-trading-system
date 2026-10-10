@@ -617,7 +617,10 @@
     <div class="assistant-panel" id="assistantPanel">
         <div class="assistant-header">
             <h3>AI Trading Assistant</h3>
-            <button class="assistant-close" onclick="toggleAssistant()">&times;</button>
+            <div>
+                <button class="assistant-close" onclick="clearAssistantChat()" title="Clear chat" style="margin-right:8px;">&#8635;</button>
+                <button class="assistant-close" onclick="toggleAssistant()">&times;</button>
+            </div>
         </div>
         <div class="assistant-messages" id="assistantMessages">
             <div class="assistant-msg bot">Hello! I can help you understand the analysis. Ask me about predictions, risk, features, or trading recommendations.</div>
@@ -987,8 +990,25 @@
             });
         }
 
+        function renderMarkdown(text) {
+            if (!text) return '';
+            return text
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+        }
+
+        function clearAssistantChat() {
+            const messagesEl = document.getElementById('assistantMessages');
+            messagesEl.innerHTML = '<div class="assistant-msg bot">Chat cleared. How can I help you with the analysis?</div>';
+        }
+
         function toggleAssistant() {
             document.getElementById('assistantPanel').classList.toggle('open');
+            const messagesEl = document.getElementById('assistantMessages');
+            if (messagesEl.innerHTML.includes('null')) {
+                clearAssistantChat();
+            }
         }
 
         async function sendMessage() {
@@ -997,7 +1017,7 @@
             if (!msg) return;
             input.value = '';
             const messagesEl = document.getElementById('assistantMessages');
-            messagesEl.innerHTML += `<div class="assistant-msg user">${msg}</div>`;
+            messagesEl.innerHTML += `<div class="assistant-msg user">${renderMarkdown(msg)}</div>`;
             messagesEl.scrollTop = messagesEl.scrollHeight;
             try {
                 const context = window._lastAnalysisContext || {};
@@ -1007,7 +1027,8 @@
                     body: JSON.stringify({question: msg, context}),
                 });
                 const data = await res.json();
-                messagesEl.innerHTML += `<div class="assistant-msg bot">${data.answer}</div>`;
+                const answer = data.answer || 'No response received. Please try again.';
+                messagesEl.innerHTML += `<div class="assistant-msg bot">${renderMarkdown(answer)}</div>`;
             } catch (e) {
                 messagesEl.innerHTML += `<div class="assistant-msg bot">Error: ${e.message}</div>`;
             }
