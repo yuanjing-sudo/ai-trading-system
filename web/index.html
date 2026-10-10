@@ -657,6 +657,74 @@
             }
         }
 
+        async function loadAdvancedAnalytics(symbol) {
+            try {
+                const res = await fetch(`${API_BASE}/api/advanced/${symbol}?asset_class=${currentTab}`);
+                if (!res.ok) return null;
+                return await res.json();
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function renderAdvancedAnalytics(adv) {
+            if (!adv) return '';
+            const rm = adv.risk_metrics || {};
+            const mc = adv.monte_carlo || {};
+            const conf = adv.prediction_confidence || {};
+            const div = adv.ensemble_diversity || {};
+            const shap = adv.shap_values || [];
+
+            return `
+                <div class="card">
+                    <h2>Risk Metrics</h2>
+                    <div class="metrics-grid">
+                        <div class="metric-item"><div class="metric-value">${((rm.sharpe || 0)).toFixed(2)}</div><div class="metric-label">Sharpe</div></div>
+                        <div class="metric-item"><div class="metric-value">${((rm.sortino || 0)).toFixed(2)}</div><div class="metric-label">Sortino</div></div>
+                        <div class="metric-item"><div class="metric-value">${((rm.max_drawdown || 0) * 100).toFixed(1)}%</div><div class="metric-label">Max DD</div></div>
+                        <div class="metric-item"><div class="metric-value">${((rm.calmar || 0)).toFixed(2)}</div><div class="metric-label">Calmar</div></div>
+                        <div class="metric-item"><div class="metric-value">${((rm.var_95 || 0) * 100).toFixed(2)}%</div><div class="metric-label">VaR 95%</div></div>
+                        <div class="metric-item"><div class="metric-value">${((rm.cvar_95 || 0) * 100).toFixed(2)}%</div><div class="metric-label">CVaR 95%</div></div>
+                        <div class="metric-item"><div class="metric-value">${((rm.skewness || 0)).toFixed(2)}</div><div class="metric-label">Skewness</div></div>
+                        <div class="metric-item"><div class="metric-value">${((rm.kurtosis || 0)).toFixed(2)}</div><div class="metric-label">Kurtosis</div></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>Monte Carlo Simulation (500 paths)</h2>
+                    <div class="metrics-grid">
+                        <div class="metric-item"><div class="metric-value">${((mc.mean_final_return || 0) * 100).toFixed(1)}%</div><div class="metric-label">Mean Return</div></div>
+                        <div class="metric-item"><div class="metric-value">${((mc.median_final_return || 0) * 100).toFixed(1)}%</div><div class="metric-label">Median</div></div>
+                        <div class="metric-item"><div class="metric-value">${((mc.prob_profit || 0) * 100).toFixed(0)}%</div><div class="metric-label">P(Profit)</div></div>
+                        <div class="metric-item"><div class="metric-value">${((mc.var || 0) * 100).toFixed(1)}%</div><div class="metric-label">VaR</div></div>
+                        <div class="metric-item"><div class="metric-value">${((mc.cvar || 0) * 100).toFixed(1)}%</div><div class="metric-label">CVaR</div></div>
+                        <div class="metric-item"><div class="metric-value">${((mc.percentile_5 || 0) * 100).toFixed(1)}%</div><div class="metric-label">5th Percentile</div></div>
+                        <div class="metric-item"><div class="metric-value">${((mc.percentile_95 || 0) * 100).toFixed(1)}%</div><div class="metric-label">95th Percentile</div></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>Prediction Confidence</h2>
+                    <div class="metrics-grid">
+                        <div class="metric-item"><div class="metric-value">${((conf.mean_confidence || 0) * 100).toFixed(0)}%</div><div class="metric-label">Mean Confidence</div></div>
+                        <div class="metric-item"><div class="metric-value">${((conf.high_confidence_ratio || 0) * 100).toFixed(0)}%</div><div class="metric-label">High Confidence</div></div>
+                        <div class="metric-item"><div class="metric-value">${((conf.prediction_entropy || 0)).toFixed(3)}</div><div class="metric-label">Entropy</div></div>
+                        <div class="metric-item"><div class="metric-value">${((div.diversity || 0)).toFixed(3)}</div><div class="metric-label">Ensemble Diversity</div></div>
+                        <div class="metric-item"><div class="metric-value">${((div.agreement || 0) * 100).toFixed(0)}%</div><div class="metric-label">Model Agreement</div></div>
+                    </div>
+                </div>
+                ${shap.length > 0 ? `
+                <div class="card">
+                    <h2>SHAP Feature Importance</h2>
+                    ${shap.slice(0, 10).map(s => `
+                        <div class="feature-bar">
+                            <div class="feature-name">${s.feature}</div>
+                            <div class="feature-bar-bg"><div class="feature-bar-fill" style="width:${(s.shap_importance / shap[0].shap_importance * 100).toFixed(1)}%;"></div></div>
+                            <div class="feature-value">${s.shap_importance.toFixed(4)}</div>
+                        </div>
+                    `).join('')}
+                </div>` : ''}
+            `;
+        }
+
         function renderResults(data) {
             const results = document.getElementById('results');
             const primaryPred = data.predictions.find(p => p.horizon === 5) || data.predictions[0];
@@ -736,6 +804,7 @@
                     </div>
                 </div>
                 ${assetSpecificHtml}
+                <div id="advancedContainer"></div>
                 <div class="card">
                     <h2>Multi-Horizon Predictions</h2>
                     <table>
@@ -764,6 +833,12 @@
                     `).join('')}
                 </div>
             `;
+
+            loadAdvancedAnalytics(data.symbol).then(adv => {
+                if (adv) {
+                    document.getElementById('advancedContainer').innerHTML = renderAdvancedAnalytics(adv);
+                }
+            });
         }
 
         loadMarketState();

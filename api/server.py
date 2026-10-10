@@ -233,7 +233,18 @@ async def _fetch_crypto_indicators() -> Dict:
         btc_df = btc.get("BTC-USD", pd.DataFrame())
         eth_df = total.get("ETH-USD", pd.DataFrame())
         if btc_df.empty or eth_df.empty:
-            return {"btc_dominance": 50.0, "altcoin_season": False, "total_market_cap_trend": "neutral"}
+            return {
+                "btc_dominance": 50.0,
+                "altcoin_season": False,
+                "btc_30d_return": 0.0,
+                "eth_30d_return": 0.0,
+                "total_market_cap_trend": "neutral",
+                "fear_greed_index": 50,
+                "total_supply": "N/A",
+                "circulating_supply": "N/A",
+                "staking_apy": "N/A",
+                "tvl": "N/A",
+            }
         btc_mcap_proxy = btc_df["close"] * 19000000
         eth_mcap_proxy = eth_df["close"] * 120000000
         total_mcap = btc_mcap_proxy + eth_mcap_proxy
@@ -247,6 +258,11 @@ async def _fetch_crypto_indicators() -> Dict:
             "btc_30d_return": float(btc_30d * 100),
             "eth_30d_return": float(eth_30d * 100),
             "total_market_cap_trend": "up" if btc_30d > 0 else "down",
+            "fear_greed_index": 50,  # placeholder - would use alternative API
+            "total_supply": "N/A",  # would use coin-specific API
+            "circulating_supply": "N/A",
+            "staking_apy": "N/A",
+            "tvl": "N/A",
         }
     except Exception:
         return {}
@@ -308,6 +324,7 @@ async def _fetch_commodity_indicators(symbol: str) -> Dict:
 
 async def _fetch_etf_indicators(symbol: str) -> Dict:
     try:
+        import yfinance as yf
         df = _fetcher.fetch([symbol], "2024-01-01", "2024-12-31")
         d = list(df.values())[0] if df else pd.DataFrame()
         if d.empty:
@@ -317,6 +334,8 @@ async def _fetch_etf_indicators(symbol: str) -> Dict:
         ma200 = float(d["close"].rolling(200).mean().iloc[-1])
         vol = float(d["close"].pct_change().rolling(20).std().iloc[-1] * 100)
         adv = float((d["close"] * d["volume"]).rolling(20).mean().iloc[-1])
+        ticker = yf.Ticker(symbol)
+        info = ticker.info
         return {
             "current_price": price,
             "trend": "up" if price > ma50 > ma200 else "down" if price < ma50 < ma200 else "mixed",
@@ -324,6 +343,31 @@ async def _fetch_etf_indicators(symbol: str) -> Dict:
             "ma200": ma200,
             "volatility_20d": vol,
             "adv_20d": adv,
+            "ytd_return": float(d["close"].pct_change().iloc[-1] * 100) if len(d) > 1 else 0,
+            "expense_ratio": info.get("expenseRatio", "N/A"),
+            "dividend_yield": float(info.get("dividendYield", 0) * 100) if info.get("dividendYield") else 0,
+            "52_week_change": float(d["close"].pct_change(252).iloc[-1] * 100) if len(d) > 252 else 0,
+        }
+    except Exception:
+        return {}
+
+
+async def _fetch_stock_indicators(symbol: str) -> Dict:
+    try:
+        import yfinance as yf
+        ticker = yf.Ticker(symbol)
+        info = ticker.info
+        return {
+            "market_cap": info.get("marketCap", 0),
+            "p_e_ratio": info.get("trailingPE", 0),
+            "p_b_ratio": info.get("priceToBook", 0),
+            "dividend_yield": float(info.get("dividendYield", 0) * 100) if info.get("dividendYield") else 0,
+            "eps": info.get("trailingEps", 0),
+            "book_value": info.get("bookValue", 0),
+            "52_week_high": info.get("52WeekHigh", 0),
+            "52_week_low": info.get("52WeekLow", 0),
+            "revenue": info.get("totalRevenue", 0),
+            "profit_margin": float(info.get("profitMargins", 0) * 100) if info.get("profitMargins") else 0,
         }
     except Exception:
         return {}
@@ -510,6 +554,8 @@ def _analyze_sync(symbol: str, asset_class: str, currency: str, start: str, end:
                 asset_specific = asyncio.run(_fetch_commodity_indicators(symbol))
             elif asset_class == "etf":
                 asset_specific = asyncio.run(_fetch_etf_indicators(symbol))
+            elif asset_class == "stocks":
+                asset_specific = asyncio.run(_fetch_stock_indicators(symbol))
 
         if "date" in preds.columns:
             preds["date"] = preds["date"].astype(str)
@@ -618,9 +664,89 @@ async def get_universe(asset_class: str):
     return {"asset_class": asset_class, "symbols": universes[asset_class]}
 
 
+@app.get("/api/advanced/{symbol}")
+async def advanced_analysis(
+    symbol: str,
+    asset_class: str = "stocks",
+    start: str = "2022-01-01",
+    end: str = "2024-12-31",
+):
+    from advanced.analytics import AdvancedAnalytics
+    symbol = _resolve_symbol(symbol)
+    try:
+        price_data = _fetcher.fetch([symbol], start, end)
+        if not price_data:
+            raise HTTPException(status_code=404, detail=f"No data found for {symbol}")
+        df = list(price_data.values())[0]
+        if df.empty:
+            raise HTTPException(status_code=404, detail=f"No data found for {symbol}")
+
+        returns = df["close"].pct_change().dropna()
+        risk_metrics = AdvancedAnalytics.compute_risk_metrics(returns)
+        mc_results = AdvancedAnalytics.monte_carlo_simulation(returns, n_simulations=500, horizon=252)
+
+        if asset_class == "crypto":
+            bridge = _get_crypto_bridge([symbol], start, end)
+        else:
+            bridge = _get_bridge([symbol], start, end)
+        preds = bridge.predict(price_data, _fetcher.fetch_benchmark("SPY", start, end))
+        conf_analysis = AdvancedAnalytics.prediction_confidence_analysis(preds)
+        diversity = AdvancedAnalytics.ensemble_diversity_analysis(preds)
+
+        shap_data = []
+        try:
+            if hasattr(bridge, 'predictor') and hasattr(bridge.predictor, 'engine'):
+                ens = bridge.predictor.ensembles.get(bridge.predictor.cfg.primary_horizon)
+                if ens and hasattr(ens, 'xgb') and ens.xgb and ens.xgb.model is not None:
+                    X = preds[ens.feature_names_].fillna(0).values[:100]
+                    shap_df = AdvancedAnalytics.compute_shap_values(
+                        ens.xgb.model, X, ens.feature_names_, n_samples=50
+                    )
+                    shap_data = shap_df.head(20).to_dict("records")
+        except Exception:
+            pass
+
+        return {
+            "symbol": symbol.upper(),
+            "risk_metrics": risk_metrics,
+            "monte_carlo": {k: v for k, v in mc_results.items() if k != "simulations"},
+            "prediction_confidence": conf_analysis,
+            "ensemble_diversity": diversity,
+            "shap_values": shap_data,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Advanced analysis failed for {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/correlation")
+async def correlation_matrix(
+    symbols: str = Query(...),
+    start: str = "2023-01-01",
+    end: str = "2024-12-31",
+):
+    sym_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
+    if not sym_list:
+        raise HTTPException(status_code=400, detail="No symbols provided")
+    try:
+        price_data = _fetcher.fetch(sym_list, start, end)
+        from advanced.analytics import AdvancedAnalytics
+        corr = AdvancedAnalytics.cross_asset_correlation(price_data, lookback=30)
+        if corr.empty:
+            raise HTTPException(status_code=404, detail="No correlation data available")
+        return {"symbols": sym_list, "correlation": corr.to_dict()}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Correlation analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "version": "3.0.0"}
+    return {"status": "ok", "version": "3.1.0"}
 
 
 def start():
