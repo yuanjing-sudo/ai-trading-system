@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Trading System</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0e17;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a1f2e 0%, #0d1321 100%);
+            padding: 20px 40px;
+            border-bottom: 1px solid #1e2a3a;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header h1 {
+            font-size: 24px;
+            background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header .subtitle {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        .search-container {
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .search-box {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .search-input {
+            flex: 1;
+            padding: 16px 24px;
+            font-size: 16px;
+            background: #131a2a;
+            border: 1px solid #1e2a3a;
+            border-radius: 12px;
+            color: #e0e0e0;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .search-input:focus {
+            border-color: #00d4ff;
+        }
+        .search-input::placeholder {
+            color: #4b5563;
+        }
+        .search-btn {
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #00d4ff, #7b2ff7);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .search-btn:hover { opacity: 0.9; }
+        .search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .search-hint {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 24px;
+        }
+        .quick-symbols {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+        .quick-symbol {
+            padding: 6px 14px;
+            background: #131a2a;
+            border: 1px solid #1e2a3a;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #9ca3af;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .quick-symbol:hover {
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+        .results {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 40px 40px;
+        }
+        .card {
+            background: #131a2a;
+            border: 1px solid #1e2a3a;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #f3f4f6;
+        }
+        .signal-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .signal-buy { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+        .signal-strong-buy { background: rgba(34, 197, 94, 0.3); color: #22c55e; }
+        .signal-sell { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+        .signal-strong-sell { background: rgba(239, 68, 68, 0.3); color: #ef4444; }
+        .signal-neutral { background: rgba(107, 114, 128, 0.15); color: #9ca3af; }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+        .metric-item {
+            background: #0d1321;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #00d4ff;
+        }
+        .metric-label {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 4px;
+            text-transform: uppercase;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th, td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #1e2a3a;
+        }
+        th {
+            color: #6b7280;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+        tr:hover { background: rgba(0, 212, 255, 0.03); }
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #6b7280;
+        }
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #1e2a3a;
+            border-top-color: #00d4ff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 12px;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            color: #ef4444;
+        }
+        .regime-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #0d1321;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        .regime-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .prob-bar {
+            width: 100%;
+            height: 6px;
+            background: #1e2a3a;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .prob-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+        .feature-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        .feature-name {
+            width: 180px;
+            font-size: 12px;
+            color: #9ca3af;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .feature-bar-bg {
+            flex: 1;
+            height: 8px;
+            background: #1e2a3a;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .feature-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+            border-radius: 4px;
+        }
+        .feature-value {
+            width: 60px;
+            text-align: right;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid #1e2a3a;
+            border-radius: 8px;
+            color: #9ca3af;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .tab.active {
+            background: #1e2a3a;
+            color: #00d4ff;
+            border-color: #00d4ff;
+        }
+        .tab:hover { border-color: #00d4ff; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>AI Trading System</h1>
+            <div class="subtitle">Institutional-Grade Adaptive Market Prediction Engine</div>
+        </div>
+        <div class="regime-badge" id="regimeBadge">
+            <div class="regime-dot" style="background: #6b7280;"></div>
+            <span id="regimeText">Loading...</span>
+        </div>
+    </div>
+
+    <div class="search-container">
+        <div class="search-box">
+            <input type="text" class="search-input" id="searchInput"
+                   placeholder="Search stocks, ETFs, or crypto (e.g., AAPL, SPY, BTC-USD)..."
+                   autocomplete="off">
+            <button class="search-btn" id="searchBtn" onclick="analyze()">Analyze</button>
+        </div>
+        <div class="search-hint">Enter any stock ticker, ETF symbol, or cryptocurrency pair. Supports 5000+ symbols.</div>
+        <div class="quick-symbols">
+            <span class="quick-symbol" onclick="quickSearch('AAPL')">AAPL</span>
+            <span class="quick-symbol" onclick="quickSearch('MSFT')">MSFT</span>
+            <span class="quick-symbol" onclick="quickSearch('NVDA')">NVDA</span>
+            <span class="quick-symbol" onclick="quickSearch('TSLA')">TSLA</span>
+            <span class="quick-symbol" onclick="quickSearch('SPY')">SPY</span>
+            <span class="quick-symbol" onclick="quickSearch('QQQ')">QQQ</span>
+            <span class="quick-symbol" onclick="quickSearch('BTC-USD')">BTC-USD</span>
+            <span class="quick-symbol" onclick="quickSearch('ETH-USD')">ETH-USD</span>
+            <span class="quick-symbol" onclick="quickSearch('GLD')">GLD</span>
+            <span class="quick-symbol" onclick="quickSearch('TLT')">TLT</span>
+        </div>
+    </div>
+
+    <div class="results" id="results"></div>
+
+    <script>
+        const API_BASE = '';
+
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') analyze();
+        });
+
+        async function loadMarketState() {
+            try {
+                const res = await fetch(`${API_BASE}/api/market_state`);
+                const data = await res.json();
+                document.getElementById('regimeText').textContent = data.regime.replace('_', ' ');
+                const colors = {
+                    crisis: '#ef4444', high_vol: '#f97316', trending_down: '#f59e0b',
+                    ranging: '#6b7280', trending_up: '#22c55e', low_vol: '#00d4ff'
+                };
+                document.querySelector('.regime-dot').style.background = colors[data.regime] || '#6b7280';
+            } catch (e) {
+                document.getElementById('regimeText').textContent = 'Unavailable';
+            }
+        }
+
+        function quickSearch(symbol) {
+            document.getElementById('searchInput').value = symbol;
+            analyze();
+        }
+
+        async function analyze() {
+            const symbol = document.getElementById('searchInput').value.trim().toUpperCase();
+            if (!symbol) return;
+
+            const btn = document.getElementById('searchBtn');
+            btn.disabled = true;
+            btn.textContent = 'Analyzing...';
+
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="loading">Running AI analysis</div>';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/analyze/${symbol}`);
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Analysis failed');
+                }
+                const data = await res.json();
+                renderResults(data);
+            } catch (e) {
+                results.innerHTML = `<div class="error">Error: ${e.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Analyze';
+            }
+        }
+
+        function renderResults(data) {
+            const results = document.getElementById('results');
+            const primaryPred = data.predictions.find(p => p.horizon === 5) || data.predictions[0];
+            const signal = data.signals[0] || {};
+            const metrics = data.metrics.find(m => m.horizon === 5) || data.metrics[0] || {};
+            const marketState = data.market_state || {};
+
+            const signalClass = (signal.signal || 'NEUTRAL').toLowerCase().replace('_', '-');
+            const prob = primaryPred ? primaryPred.probability_up : 0.5;
+            const probPct = (prob * 100).toFixed(1);
+            const probColor = prob > 0.5 ? '#22c55e' : '#ef4444';
+
+            const maxImp = data.feature_importance.length > 0
+                ? Math.max(...data.feature_importance.map(f => Math.abs(f.importance)))
+                : 1;
+
+            results.innerHTML = `
+                <div class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                        <div>
+                            <h2 style="font-size:24px;">${data.symbol}</h2>
+                            <div style="color:#6b7280;font-size:13px;margin-top:4px;">
+                                ${primaryPred ? new Date(primaryPred.date).toLocaleDateString() : ''}
+                            </div>
+                        </div>
+                        <span class="signal-badge signal-${signalClass}">${signal.signal || 'NEUTRAL'}</span>
+                    </div>
+                    <div style="display:flex;gap:32px;align-items:center;">
+                        <div>
+                            <div style="font-size:13px;color:#6b7280;">Probability Up</div>
+                            <div style="font-size:36px;font-weight:700;color:${probColor};">${probPct}%</div>
+                            <div class="prob-bar" style="width:200px;">
+                                <div class="prob-fill" style="width:${probPct}%;background:${probColor};"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size:13px;color:#6b7280;">Expected Return</div>
+                            <div style="font-size:24px;font-weight:600;">
+                                ${primaryPred ? (primaryPred.expected_return * 100).toFixed(2) : '0.00'}%
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size:13px;color:#6b7280;">Confidence</div>
+                            <div style="font-size:24px;font-weight:600;">
+                                ${primaryPred ? (primaryPred.confidence * 100).toFixed(0) : '0'}%
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size:13px;color:#6b7280;">Regime</div>
+                            <div style="font-size:16px;font-weight:600;text-transform:capitalize;">
+                                ${marketState.regime || 'unknown'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Model Performance</h2>
+                    <div class="metrics-grid">
+                        <div class="metric-item">
+                            <div class="metric-value">${(metrics.auc * 100).toFixed(1)}%</div>
+                            <div class="metric-label">AUC</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value">${(metrics.accuracy * 100).toFixed(1)}%</div>
+                            <div class="metric-label">Accuracy</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value">${(metrics.precision * 100).toFixed(1)}%</div>
+                            <div class="metric-label">Precision</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value">${(metrics.recall * 100).toFixed(1)}%</div>
+                            <div class="metric-label">Recall</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value">${(metrics.brier).toFixed(3)}</div>
+                            <div class="metric-label">Brier Score</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-value">${(metrics.hit_rate * 100).toFixed(1)}%</div>
+                            <div class="metric-label">Hit Rate</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Multi-Horizon Predictions</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Horizon</th>
+                                <th>Probability Up</th>
+                                <th>Expected Return</th>
+                                <th>Confidence</th>
+                                <th>Uncertainty</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.predictions.map(p => `
+                                <tr>
+                                    <td>${p.horizon}d</td>
+                                    <td style="color:${p.probability_up > 0.5 ? '#22c55e' : '#ef4444'};">
+                                        ${(p.probability_up * 100).toFixed(1)}%
+                                    </td>
+                                    <td>${(p.expected_return * 100).toFixed(2)}%</td>
+                                    <td>${(p.confidence * 100).toFixed(0)}%</td>
+                                    <td>${(p.uncertainty * 100).toFixed(1)}%</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <h2>Top Feature Importance</h2>
+                    ${data.feature_importance.slice(0, 15).map(f => `
+                        <div class="feature-bar">
+                            <div class="feature-name">${f.feature}</div>
+                            <div class="feature-bar-bg">
+                                <div class="feature-bar-fill" style="width:${(Math.abs(f.importance) / maxImp * 100).toFixed(1)}%;"></div>
+                            </div>
+                            <div class="feature-value">${f.importance.toFixed(4)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        loadMarketState();
+    </script>
+</body>
+</html>
