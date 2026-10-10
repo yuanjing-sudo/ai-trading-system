@@ -329,27 +329,76 @@
             margin-top: 4px;
         }
         .hidden { display: none; }
+        body[data-tab="stocks"] { --accent: #00d4ff; --accent2: #7b2ff7; --card-bg: #131a2a; --metric-bg: #0d1321; }
+        body[data-tab="crypto"] { --accent: #f7931a; --accent2: #ffd700; --card-bg: #1a1410; --metric-bg: #120e0a; }
+        body[data-tab="commodities"] { --accent: #22c55e; --accent2: #84cc16; --card-bg: #0f1a14; --metric-bg: #0a120e; }
+        body[data-tab="forex"] { --accent: #a78bfa; --accent2: #c084fc; --card-bg: #14101a; --metric-bg: #0e0a12; }
+        body[data-tab="etf"] { --accent: #fb923c; --accent2: #fbbf24; --card-bg: #1a140f; --metric-bg: #120e0a; }
+        body[data-tab="crypto"] .card { background: var(--card-bg); border-color: #2a2015; }
+        body[data-tab="crypto"] .metric-item { background: var(--metric-bg); }
+        body[data-tab="crypto"] .metric-value { color: var(--accent); }
+        body[data-tab="crypto"] .search-btn { background: linear-gradient(135deg, #f7931a, #ffd700); }
+        body[data-tab="crypto"] .nav-tab.active { color: var(--accent); border-left-color: var(--accent); background: rgba(247,147,26,0.1); }
+        body[data-tab="crypto"] .nav-tab:hover { background: rgba(247,147,26,0.05); }
+        body[data-tab="crypto"] .search-input:focus { border-color: var(--accent); }
+        body[data-tab="crypto"] .quick-symbol:hover { border-color: var(--accent); color: var(--accent); }
+        body[data-tab="crypto"] .feature-bar-fill { background: linear-gradient(90deg, #f7931a, #ffd700); }
+        body[data-tab="crypto"] .prob-fill { background: var(--accent) !important; }
+        body[data-tab="crypto"] .asset-item { background: var(--metric-bg); }
+        body[data-tab="commodities"] .card { background: var(--card-bg); border-color: #152a1a; }
+        body[data-tab="commodities"] .metric-item { background: var(--metric-bg); }
+        body[data-tab="commodities"] .metric-value { color: var(--accent); }
+        body[data-tab="commodities"] .search-btn { background: linear-gradient(135deg, #22c55e, #84cc16); }
+        body[data-tab="commodities"] .nav-tab.active { color: var(--accent); border-left-color: var(--accent); background: rgba(34,197,94,0.1); }
+        body[data-tab="commodities"] .nav-tab:hover { background: rgba(34,197,94,0.05); }
+        body[data-tab="commodities"] .search-input:focus { border-color: var(--accent); }
+        body[data-tab="commodities"] .quick-symbol:hover { border-color: var(--accent); color: var(--accent); }
+        body[data-tab="commodities"] .feature-bar-fill { background: linear-gradient(90deg, #22c55e, #84cc16); }
+        body[data-tab="commodities"] .prob-fill { background: var(--accent) !important; }
+        body[data-tab="commodities"] .asset-item { background: var(--metric-bg); }
+        body[data-tab="forex"] .card { background: var(--card-bg); border-color: #1a152a; }
+        body[data-tab="forex"] .metric-item { background: var(--metric-bg); }
+        body[data-tab="forex"] .metric-value { color: var(--accent); }
+        body[data-tab="forex"] .search-btn { background: linear-gradient(135deg, #a78bfa, #c084fc); }
+        body[data-tab="forex"] .nav-tab.active { color: var(--accent); border-left-color: var(--accent); background: rgba(167,139,250,0.1); }
+        body[data-tab="forex"] .nav-tab:hover { background: rgba(167,139,250,0.05); }
+        body[data-tab="forex"] .search-input:focus { border-color: var(--accent); }
+        body[data-tab="forex"] .quick-symbol:hover { border-color: var(--accent); color: var(--accent); }
+        body[data-tab="forex"] .feature-bar-fill { background: linear-gradient(90deg, #a78bfa, #c084fc); }
+        body[data-tab="forex"] .prob-fill { background: var(--accent) !important; }
+        body[data-tab="forex"] .asset-item { background: var(--metric-bg); }
+        body[data-tab="etf"] .card { background: var(--card-bg); border-color: #2a1f15; }
+        body[data-tab="etf"] .metric-item { background: var(--metric-bg); }
+        body[data-tab="etf"] .metric-value { color: var(--accent); }
+        body[data-tab="etf"] .search-btn { background: linear-gradient(135deg, #fb923c, #fbbf24); }
+        body[data-tab="etf"] .nav-tab.active { color: var(--accent); border-left-color: var(--accent); background: rgba(251,146,60,0.1); }
+        body[data-tab="etf"] .nav-tab:hover { background: rgba(251,146,60,0.05); }
+        body[data-tab="etf"] .search-input:focus { border-color: var(--accent); }
+        body[data-tab="etf"] .quick-symbol:hover { border-color: var(--accent); color: var(--accent); }
+        body[data-tab="etf"] .feature-bar-fill { background: linear-gradient(90deg, #fb923c, #fbbf24); }
+        body[data-tab="etf"] .prob-fill { background: var(--accent) !important; }
+        body[data-tab="etf"] .asset-item { background: var(--metric-bg); }
     </style>
 </head>
-<body>
+<body data-tab="stocks">
     <div class="sidebar">
         <div class="sidebar-brand">
             <h1>AI Trading</h1>
             <div class="subtitle">Predictor Engine v3</div>
         </div>
-        <div class="nav-tab active" onclick="switchTab('stocks')">
+        <div class="nav-tab active" onclick="switchTab('stocks', this)">
             <span class="icon">&#128200;</span> Stocks
         </div>
-        <div class="nav-tab" onclick="switchTab('crypto')">
+        <div class="nav-tab" onclick="switchTab('crypto', this)">
             <span class="icon">&#9889;</span> Crypto
         </div>
-        <div class="nav-tab" onclick="switchTab('commodities')">
+        <div class="nav-tab" onclick="switchTab('commodities', this)">
             <span class="icon">&#128178;</span> Commodities
         </div>
-        <div class="nav-tab" onclick="switchTab('forex')">
+        <div class="nav-tab" onclick="switchTab('forex', this)">
             <span class="icon">&#128177;</span> Forex
         </div>
-        <div class="nav-tab" onclick="switchTab('etf')">
+        <div class="nav-tab" onclick="switchTab('etf', this)">
             <span class="icon">&#128202;</span> ETF
         </div>
     </div>
@@ -387,7 +436,7 @@
                            placeholder="Search any stock, ETF, crypto, or forex..." autocomplete="off">
                     <button class="search-btn" id="searchBtn" onclick="analyze()">Analyze</button>
                 </div>
-                <div class="search-hint">Search any ticker on yfinance. Try AAPL, BTC-USD, SPY, EURUSD=X, GC=F</div>
+                <div class="search-hint" id="searchHint">Search any ticker on yfinance. Try AAPL, BTC-USD, SPY, EURUSD=X, GC=F</div>
                 <div class="quick-symbols" id="quickSymbols"></div>
             </div>
 
@@ -407,18 +456,18 @@
                 placeholder: 'Search stocks...'
             },
             crypto: {
-                quick: ['BTC-USD','ETH-USD','SOL-USD','BNB-USD','XRP-USD','ADA-USD','DOGE-USD','DOT-USD'],
-                hint: 'Search any cryptocurrency. Try BTC-USD, ETH-USD, SOL-USD...',
+                quick: ['BTC','ETH','SOL','BNB','XRP','ADA','DOGE','DOT'],
+                hint: 'Search any cryptocurrency. Try BTC, ETH, SOL, BNB...',
                 placeholder: 'Search crypto...'
             },
             commodities: {
-                quick: ['GC=F','SI=F','CL=F','NG=F','HG=F','PL=F','PA=F','KC=F'],
-                hint: 'Search any commodity. Try GC=F (gold), CL=F (oil), NG=F (gas)...',
+                quick: ['GOLD','SILVER','OIL','NATGAS','COPPER','PLATINUM','WHEAT','CORN'],
+                hint: 'Search any commodity. Try GOLD, OIL, NATGAS, COPPER...',
                 placeholder: 'Search commodities...'
             },
             forex: {
-                quick: ['EURUSD=X','GBPUSD=X','USDJPY=X','USDCHF=X','USDCAD=X','AUDUSD=X','USDCNY=X','USDINR=X'],
-                hint: 'Search any forex pair. Try EURUSD=X, GBPUSD=X, USDJPY=X...',
+                quick: ['EURUSD','GBPUSD','USDJPY','USDCHF','USDCAD','AUDUSD','USDCNY','USDINR'],
+                hint: 'Search any forex pair. Try EURUSD, GBPUSD, USDJPY...',
                 placeholder: 'Search forex...'
             },
             etf: {
@@ -432,13 +481,14 @@
             if (e.key === 'Enter') analyze();
         });
 
-        function switchTab(tab) {
+        function switchTab(tab, el) {
             currentTab = tab;
+            document.body.setAttribute('data-tab', tab);
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            event.currentTarget.classList.add('active');
+            el.classList.add('active');
             const cfg = TAB_CONFIG[tab];
             document.getElementById('searchInput').placeholder = cfg.placeholder;
-            document.getElementById('search-hint').textContent = cfg.hint;
+            document.getElementById('searchHint').textContent = cfg.hint;
             const qs = document.getElementById('quickSymbols');
             qs.innerHTML = cfg.quick.map(s => `<span class="quick-symbol" onclick="quickSearch('${s}')">${s}</span>`).join('');
             document.getElementById('results').innerHTML = '';
@@ -525,7 +575,8 @@
                     }
                     return `<div class="asset-item"><div class="label">${k.replace(/_/g, ' ')}</div><div class="value">${v}</div></div>`;
                 }).join('');
-                assetSpecificHtml = `<div class="card"><h2>${data.asset_class === 'crypto' ? 'Crypto' : data.asset_class === 'forex' ? 'Forex' : data.asset_class === 'commodities' ? 'Commodity' : 'ETF'} Indicators</h2><div class="asset-specific">${items}</div></div>`;
+                const titleMap = { crypto: 'Crypto Indicators', forex: 'Forex Indicators', commodities: 'Commodity Indicators', etf: 'ETF Indicators' };
+                assetSpecificHtml = `<div class="card"><h2>${titleMap[data.asset_class] || 'Asset Indicators'}</h2><div class="asset-specific">${items}</div></div>`;
             }
 
             results.innerHTML = `
@@ -604,7 +655,7 @@
         }
 
         loadMarketState();
-        switchTab('stocks');
+        switchTab('stocks', document.querySelector('.nav-tab'));
     </script>
 </body>
 </html>

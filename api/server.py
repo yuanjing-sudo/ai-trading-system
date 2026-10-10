@@ -47,6 +47,40 @@ ETF_UNIVERSE: Set[str] = set()
 FOREX_UNIVERSE: Set[str] = set()
 COMMODITY_UNIVERSE: Set[str] = set()
 
+CRYPTO_ALIASES = {
+    "BTC": "BTC-USD", "ETH": "ETH-USD", "SOL": "SOL-USD", "BNB": "BNB-USD",
+    "XRP": "XRP-USD", "ADA": "ADA-USD", "DOGE": "DOGE-USD", "DOT": "DOT-USD",
+    "MATIC": "MATIC-USD", "AVAX": "AVAX-USD", "LINK": "LINK-USD", "UNI": "UNI-USD",
+    "LTC": "LTC-USD", "BCH": "BCH-USD", "XLM": "XLM-USD", "ALGO": "ALGO-USD",
+    "VET": "VET-USD", "FIL": "FIL-USD", "ICP": "ICP-USD", "ETC": "ETC-USD",
+    "XMR": "XMR-USD", "XTZ": "XTZ-USD", "ATOM": "ATOM-USD", "AAVE": "AAVE-USD",
+    "EGLD": "EGLD-USD", "THETA": "THETA-USD", "FTM": "FTM-USD", "HBAR": "HBAR-USD",
+    "EOS": "EOS-USD", "NEO": "NEO-USD", "KSM": "KSM-USD", "WAVES": "WAVES-USD",
+    "ZEC": "ZEC-USD", "DASH": "DASH-USD", "COMP": "COMP-USD", "SNX": "SNX-USD",
+    "YFI": "YFI-USD", "SUSHI": "SUSHI-USD", "CRV": "CRV-USD", "1INCH": "1INCH-USD",
+    "ENJ": "ENJ-USD", "CHZ": "CHZ-USD", "BAT": "BAT-USD", "MANA": "MANA-USD",
+    "SAND": "SAND-USD", "AXS": "AXS-USD", "GALA": "GALA-USD", "ILV": "ILV-USD",
+    "DYDX": "DYDX-USD", "GRT": "GRT-USD", "LRC": "LRC-USD", "IMX": "IMX-USD",
+    "RNDR": "RNDR-USD", "FET": "FET-USD", "AGIX": "AGIX-USD", "OCEAN": "OCEAN-USD",
+    "AR": "AR-USD", "STORJ": "STORJ-USD", "SKL": "SKL-USD",
+    "GOLD": "GC=F", "SILVER": "SI=F", "OIL": "CL=F", "NATGAS": "NG=F",
+    "COPPER": "HG=F", "PLATINUM": "PL=F", "PALLADIUM": "PA=F",
+    "WHEAT": "ZW=F", "CORN": "ZC=F", "SOYBEANS": "ZS=F",
+    "COFFEE": "KC=F", "SUGAR": "SB=F", "COTTON": "CT=F",
+    "COCOA": "CC=F", "ORANGE": "OJ=F",
+    "EURUSD": "EURUSD=X", "GBPUSD": "GBPUSD=X", "USDJPY": "USDJPY=X",
+    "USDCHF": "USDCHF=X", "USDCAD": "USDCAD=X", "AUDUSD": "AUDUSD=X",
+    "NZDUSD": "NZDUSD=X", "USDCNY": "USDCNY=X", "USDHKD": "USDHKD=X",
+    "USDSGD": "USDSGD=X", "USDKRW": "USDKRW=X", "USDINR": "USDINR=X",
+}
+
+
+def _resolve_symbol(symbol: str) -> str:
+    upper = symbol.upper()
+    if upper in CRYPTO_ALIASES:
+        return CRYPTO_ALIASES[upper]
+    return symbol
+
 CURRENCY_RATES: Dict[str, float] = {"USD": 1.0}
 CURRENCY_SYMBOLS = {
     "USD": "$", "EUR": "€", "GBP": "£", "JPY": "¥", "CNY": "¥",
@@ -377,6 +411,7 @@ async def analyze_symbol(
     start: str = "2022-01-01",
     end: str = "2024-12-31",
 ):
+    symbol = _resolve_symbol(symbol)
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
         _executor, _analyze_sync, symbol, asset_class, currency, start, end
