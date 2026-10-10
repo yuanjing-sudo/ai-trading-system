@@ -22,6 +22,8 @@ from config import CONFIG
 from data.fetcher import MarketDataFetcher
 from predictor.bridge import PredictorBridge
 from predictor.engine import PredictorConfig, PredictionTarget, REGIME_NAMES
+from crypto.bridge import CryptoPredictorBridge
+from crypto.engine import CryptoPredictorConfig, CryptoPredictionTarget
 from utils.logger import setup_logger
 
 logger = setup_logger("API", "INFO")
@@ -38,6 +40,7 @@ app.add_middleware(
 
 _executor = ThreadPoolExecutor(max_workers=4)
 _bridge_cache: Dict[str, PredictorBridge] = {}
+_crypto_bridge_cache: Dict[str, CryptoPredictorBridge] = {}
 _fetcher = MarketDataFetcher()
 _httpx_client = httpx.AsyncClient(timeout=30.0)
 
@@ -193,6 +196,32 @@ def _get_bridge(symbols: List[str], start: str, end: str) -> PredictorBridge:
         bridge.fit(price_data, benchmark)
         _bridge_cache[cache_key] = bridge
     return _bridge_cache[cache_key]
+
+
+def _get_crypto_bridge(symbols: List[str], start: str, end: str) -> CryptoPredictorBridge:
+    cache_key = f"{','.join(sorted(symbols))}_{start}_{end}"
+    if cache_key not in _crypto_bridge_cache:
+        price_data = _fetcher.fetch(symbols, start, end)
+        benchmark = _fetcher.fetch(["BTC-USD"], start, end)
+        if benchmark.empty:
+            benchmark = _fetcher.fetch_benchmark("SPY", start, end)
+        pred_cfg = CryptoPredictorConfig(
+            horizons_hours=(1, 4, 12, 24, 72, 168),
+            primary_horizon_hours=24,
+            target_type=CryptoPredictionTarget.DIRECTION,
+            min_history=500,
+            n_bootstrap=15,
+            xgb_n_estimators=300,
+            xgb_max_depth=5,
+            feature_selection_enabled=True,
+            max_features=100,
+            online_enabled=False,
+            log_level="WARNING",
+        )
+        bridge = CryptoPredictorBridge(cfg=pred_cfg)
+        bridge.fit(price_data, benchmark)
+        _crypto_bridge_cache[cache_key] = bridge
+    return _crypto_bridge_cache[cache_key]
 
 
 async def _fetch_crypto_indicators() -> Dict:
@@ -422,44 +451,56 @@ async def analyze_symbol(
 def _analyze_sync(symbol: str, asset_class: str, currency: str, start: str, end: str) -> Dict:
     try:
         price_data = _fetcher.fetch([symbol], start, end)
-        benchmark = _fetcher.fetch_benchmark("SPY", start, end)
         if not price_data:
             raise HTTPException(status_code=404, detail=f"No data found for {symbol}")
-
-        bridge = _get_bridge([symbol], start, end)
-        preds = bridge.predict(price_data, benchmark)
-        signals = bridge.get_signals_df()
-        metrics = bridge.metrics_report()
-        mstate = bridge.get_market_state(benchmark)
-        imp = bridge.feature_importance(top_k=20)
-        feature_importance = [{"feature": k, "importance": float(v)} for k, v in imp.items()]
 
         rate = CURRENCY_RATES.get(currency, 1.0)
         ccy_sym = CURRENCY_SYMBOLS.get(currency, "$")
 
-        asset_specific = {}
         if asset_class == "crypto":
+            benchmark = _fetcher.fetch(["BTC-USD"], start, end)
+            if benchmark.empty:
+                benchmark = _fetcher.fetch_benchmark("SPY", start, end)
+            bridge = _get_crypto_bridge([symbol], start, end)
+            preds = bridge.predict(price_data, benchmark)
+            signals = bridge.get_signals_df()
+            metrics = bridge.metrics_report()
+            mstate = bridge.get_market_state(benchmark)
+            imp = bridge.feature_importance(top_k=20)
+            feature_importance = [{"feature": k, "importance": float(v)} for k, v in imp.items()]
             asset_specific = asyncio.get_event_loop().run_until_complete(
                 _fetch_crypto_indicators()
             )
             asset_specific["tokenomics"] = asyncio.get_event_loop().run_until_complete(
                 _fetch_tokenomics(symbol)
             )
-        elif asset_class == "forex":
-            asset_specific = asyncio.get_event_loop().run_until_complete(
-                _fetch_forex_indicators(symbol)
-            )
-        elif asset_class == "commodities":
-            asset_specific = asyncio.get_event_loop().run_until_complete(
-                _fetch_commodity_indicators(symbol)
-            )
-        elif asset_class == "etf":
-            asset_specific = asyncio.get_event_loop().run_until_complete(
-                _fetch_etf_indicators(symbol)
-            )
+        else:
+            benchmark = _fetcher.fetch_benchmark("SPY", start, end)
+            bridge = _get_bridge([symbol], start, end)
+            preds = bridge.predict(price_data, benchmark)
+            signals = bridge.get_signals_df()
+            metrics = bridge.metrics_report()
+            mstate = bridge.get_market_state(benchmark)
+            imp = bridge.feature_importance(top_k=20)
+            feature_importance = [{"feature": k, "importance": float(v)} for k, v in imp.items()]
+            asset_specific = {}
+            if asset_class == "forex":
+                asset_specific = asyncio.get_event_loop().run_until_complete(
+                    _fetch_forex_indicators(symbol)
+                )
+            elif asset_class == "commodities":
+                asset_specific = asyncio.get_event_loop().run_until_complete(
+                    _fetch_commodity_indicators(symbol)
+                )
+            elif asset_class == "etf":
+                asset_specific = asyncio.get_event_loop().run_until_complete(
+                    _fetch_etf_indicators(symbol)
+                )
 
         if "date" in preds.columns:
             preds["date"] = preds["date"].astype(str)
+        if "timestamp" in preds.columns:
+            preds["timestamp"] = preds["timestamp"].astype(str)
 
         for col in ["expected_return", "expected_return_lower", "expected_return_upper"]:
             if col in preds.columns:
