@@ -15,6 +15,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 import uvicorn
 import httpx
+import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
