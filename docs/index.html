@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Trading System | Open-Source Quantitative Trading Platform</title>
+    <meta name="description" content="Production-grade AI trading system with XGBoost ensemble, 100+ technical indicators, event-driven backtester, and walk-forward optimization. Deploy on GitHub Pages.">
+    <meta name="keywords" content="algorithmic trading, quantitative finance, XGBoost, backtesting, technical indicators, GitHub Pages">
+    <!-- Plotly for live charts -->
+    <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e17;
+            --card: #131a2a;
+            --accent: #00d4ff;
+            --accent2: #7b2ff7;
+            --text: #e0e0e0;
+            --muted: #6b7280;
+            --border: #1e2a3a;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+        /* Header */
+        header {
+            background: rgba(10, 14, 23, 0.95);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border);
+        }
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 72px;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            font-size: 1.5rem;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .logo i { font-size: 1.75rem; }
+        .nav-links { display: flex; gap: 28px; list-style: none; }
+        .nav-links a { color: var(--text); font-weight: 500; font-size: 0.95rem; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--accent); text-decoration: none; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: #fff;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,212,255,0.3); }
+        .btn-outline {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+        /* Hero */
+        .hero {
+            padding: 100px 0 80px;
+            text-align: center;
+            background: radial-gradient(circle at 50% 0%, rgba(0,212,255,0.08), transparent 50%);
+        }
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            letter-spacing: -0.02em;
+        }
+        .hero h1 .highlight { color: var(--accent); }
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--muted);
+            max-width: 700px;
+            margin: 0 auto 32px;
+            line-height: 1.7;
+        }
+        .hero-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+            margin-top: 60px;
+            padding-top: 40px;
+            border-top: 1px solid var(--border);
+        }
+        .stat-item { text-align: center; }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .stat-label { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+        /* Sections */
+        section { padding: 80px 0; }
+        .section-header {
+            text-align: center;
+            margin-bottom: 56px;
+        }
+        .section-header h2 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        .section-header p { color: var(--muted); font-size: 1.1rem; }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+            display: inline-block;
+        }
+        .badge-tech { background: rgba(0,212,255,0.1); color: var(--accent); border: 1px solid rgba(0,212,255,0.2); }
+        .badge-ai { background: rgba(123,47,255,0.1); color: var(--accent2); border: 1px solid rgba(123,47,255,0.2); }
+        /* Feature grid */
+        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+        .feature-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px 24px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .feature-card:hover { transform: translateY(-4px); border-color: var(--accent); }
+        .feature-icon {
+            width: 48px; height: 48px;
+            background: rgba(0,212,255,0.1);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--accent);
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+        .feature-card h3 { font-size: 1.25rem; margin-bottom: 12px; font-weight: 600; }
+        .feature-card p { color: var(--muted); font-size: 0.95rem; line-height: 1.6; }
+        .feature-card .mono { color: var(--accent); font-size: 0.85rem; }
+        /* Live demo */
+        .demo-section {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 48px;
+            margin-top: 40px;
+        }
+        .demo-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;
+        }
+        .demo-header h2 { font-size: 1.75rem; font-weight: 700; }
+        .demo-tabs { display: flex; gap: 8px; background: rgba(10,14,23,0.5); padding: 4px; border-radius: 8px; border: 1px solid var(--border); }
+        .demo-tab {
+            padding: 8px 16px; border-radius: 6px; font-size: 0.9rem; cursor: pointer;
+            color: var(--muted); transition: all 0.2s; border: none; background: transparent;
+        }
+        .demo-tab.active { background: var(--bg); color: var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        #candlestickChart { width: 100%; height: 400px; }
+        #backtestResults { width: 100%; height: 300px; }
+        .metrics-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-top: 24px;
+        }
+        .metric-card {
+            background: rgba(10,14,23,0.6);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .metric-value { font-size: 1.75rem; font-weight: 700; color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+        .metric-label { color: var(--muted); font-size: 0.85rem; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+        /* Code block */
+        .code-block {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 32px;
+            overflow-x: auto;
+        }
+        .code-block pre { margin: 0; color: #e6edf5; font-size: 0.9rem; line-height: 1.5; }
+        .code-block .token-keyword { color: #ff7b72; }
+        .code-block .token-string { color: #a5d6ff; }
+        .code-block .token-func { color: #d2a8ff; }
+        .code-block .token-comment { color: #8b949e; font-style: italic; }
+        /* CTA */
+        .cta {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-radius: 20px;
+            padding: 60px 24px;
+            text-align: center;
+            margin-top: 80px;
+        }
+        .cta h2 { font-size: 2.5rem; margin-bottom: 16px; color: #fff; }
+        .cta p { color: rgba(255,255,255,0.8); font-size: 1.1rem; margin-bottom: 32px; max-width: 600px; margin-left: auto; margin-right: auto; }
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 48px 0;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+        .footer-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+        .social { display: flex; gap: 16px; list-style: none; }
+        .social a { color: var(--muted); font-size: 1.25rem; transition: color 0.2s; }
+        .social a:hover { color: var(--accent); }
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .nav-links { display: none; }
+            .stats { gap: 24px; }
+            .stat-value { font-size: 1.5rem; }
+            .demo-section { padding: 32px 20px; }
+            .cta h2 { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container nav">
+            <div class="logo">
+                <i class="fa-solid fa-chart-line"></i>
+                <div>AI Trading System</div>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#demo">Live Demo</a></li>
+                <li><a href="#quant">Quant Library</a></li>
+                <li><a href="https://github.com/yuanjing-sudo/ai-trading-system" target="_blank">GitHub</a></li>
+            </ul>
+            <a href="https://github.com/yuanjing-sudo/ai-trading-system" target="_blank" class="btn btn-outline">View on GitHub</a>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Build <span class="highlight">AI-Powered</span> Trading Systems</span></h1>
+            <p>Production-grade open-source quantitative trading platform with XGBoost ensemble models, 100+ technical indicators, event-driven backtesting, walk-forward optimization, and live candlestick charts. Deploy anywhere — including GitHub Pages.</p>
+            <div class="hero-actions">
+                <a href="#demo" class="btn btn-primary">Try Live Demo <i class="fa-solid fa-play"></i></a>
+                <a href="https://github.com/yuanjing-sudo/ai-trading-system" target="_blank" class="btn btn-outline">Star on GitHub <i class="fa-brands fa-github"></i></a>
+            </div>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value">100+</div>
+                    <div class="stat-label">Technical Indicators</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">50+</div>
+                    <div class="stat-label">Alpha Factors</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">30+</div>
+                    <div class="stat-label">Trading Strategies</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">XGBoost</div>
+                    <div class="stat-label">Ensemble ML Models</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">100%</div>
+                    <div class="stat-label">Open Source</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features">
+        <div class="container">
+            <div class="section-header">
+                <span class="badge badge-tech">Core Engine</span>
+                <h2>Everything You Need for Quantitative Trading</h2>
+                <p>From data ingestion to execution, the AI Trading System covers the full quant workflow.</p>
+            </div>
+            <div class="features">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-brain"></i></div>
+                    <h3>AI Ensemble Models</h3>
+                    <p>XGBoost-based ensemble with cross-sectional training, triple-barrier labels, and conformal prediction intervals.</p>
+                    <div class="mono">quant.strategies • quant.optimizer</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-chart-candlestick"></i></div>
+                    <h3>100+ Technical Indicators</h3>
+                    <p>RSI, MACD, Bollinger Bands, Ichimoku, Supertrend, VWAP, Hurst exponent, and volatility estimators — all vectorized.</p>
+                    <div class="mono">quant.indicators</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-layer-group"></i></div>
+                    <h3>Alpha Factor Library</h3>
+                    <p>Value, quality, momentum, low-volatility, and liquidity factors with cross-sectional ranking and neutralization.</p>
+                    <div class="mono">quant.factors</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-sliders"></i></div>
+                    <h3>Composable Strategies</h3>
+                    <p>Dual momentum, trend following, mean reversion, pairs trading, multi-factor, and risk-parity strategies.</p>
+                    <div class="mono">quant.strategies</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                    <h3>Risk Analytics</h3>
+                    <p>VaR, CVaR, drawdown, ulcer index, Sharpe/Sortino/Calmar ratios, and stress testing.</p>
+                    <div class="mono">quant.risk</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-chart-mixed"></i></div>
+                    <h3>Event-Driven Backtester</h3>
+                    <p>Realistic execution with commission, slippage, market impact, and borrow costs.</p>
+                    <div class="mono">quant.backtest</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
+                    <h3>Walk-Forward Optimization</h3>
+                    <p>Purged k-fold cross-validation with parameter grid search and out-of-sample evaluation.</p>
+                    <div class="mono">quant.optimizer</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fa-brands fa-python"></i></div>
+                    <h3>Production Python</h3>
+                    <p>FastAPI backend, NumPy/pandas vectorization, and full type hints. Runs locally or on any server.</p>
+                    <div class="mono">api/server.py</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="demo">
+        <div class="container">
+            <div class="section-header">
+                <span class="badge badge-ai">Live Demo</span>
+                <h2>Interactive Candlestick Chart &amp; Backtest</span></h2>
+                <p>Explore the platform directly in your browser. All charts are interactive — zoom, pan, and hover for details.</p>
+            </div>
+            <div class="demo-section">
+                <div class="demo-header">
+                    <h2>Market Data &amp; Strategy Lab</h2>
+                    <div class="demo-tabs">
+                        <button class="demo-tab active" onclick="showTab('candlestick')">Candlestick Chart</button>
+                        <button class="demo-tab" onclick="showTab('backtest')">Backtest Results</button>
+                        <button class="demo-tab" onclick="showTab('code')">Example Code</button>
+                    </div>
+                </div>
+                <div id="candlestick" class="tab-content active">
+                    <div id="candlestickChart"></div>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value" id="m-price">--</div>
+                            <div class="metric-label">Current Price</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="m-change">--</div>
+                            <div class="metric-label">24h Change</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="m-rsi">--</div>
+                            <div class="metric-label">RSI (14)</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="m-signal">--</div>
+                            <div class="metric-label">AI Signal</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="backtest" class="tab-content">
+                    <div id="backtestResults"></div>
+                    <div class="metrics-grid" style="margin-top: 24px;">
+                        <div class="metric-card">
+                            <div class="metric-value" id="bt-return">--</div>
+                            <div class="metric-label">Total Return</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="bt-sharpe">--</div>
+                            <div class="metric-label">Sharpe Ratio</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="bt-mdd">--</div>
+                            <div class="metric-label">Max Drawdown</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="bt-winrate">--</div>
+                            <div class="metric-label">Win Rate</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="code" class="tab-content">
+                    <div class="code-block">
+<pre><span class="token-comment"># Install dependencies</span>
+pip install -r requirements.txt
+
+<span class="token-comment"># Run the API server</span>
+python -m api.server
+
+<span class="token-comment"># Or run quant analysis directly</span>
+<span class="token-keyword">from</span> quant <span class="token-keyword">import</span> indicators, strategies, risk, backtest
+<span class="token-keyword">import</span> pandas <span class="token-keyword">as</span> pd
+
+<span class="token-comment"># Load price data</span>
+prices = pd.read_csv(<span class="token-string">"data/AAPL.csv"</span>, index_col=<span class="token-string">"date"</span>, parse_dates=<span class="token-string">True"</span>)
+
+<span class="token-comment"># Generate signals</span>
+signals = strategies.dual_momentum_strategy(prices, lookback=<span class="token-number">126</span>)
+
+<span class="token-comment"># Run backtest</span>
+engine = backtest.BacktestEngine(initial_capital=<span class="token-number">100000</span>)
+result = engine.run(prices, signals)
+
+<span class="token-comment"># View performance</span>
+print(result.summary())
+print(result.metrics)
+</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="quant">
+        <div class="container">
+            <div class="section-header">
+                <span class="badge badge-tech">Quant Library</span>
+                <h2>modular Python Package</span></h2>
+                <p>Import and use individual components in your own projects.</p>
+            </div>
+            <div class="features" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                <div class="feature-card" style="text-align: center;">
+                    <div class="feature-icon" style="margin: 0 auto 20px;"><i class="fa-solid fa-function"></i></div>
+                    <h3 style="margin-bottom: 8px;">quant.indicators</h3>
+                    <p style="font-size: 0.85rem;">104 vectorized technical indicators</p>
+                </div>
+                <div class="feature-card" style="text-align: center;">
+                    <div class="feature-icon" style="margin: 0 auto 20px;"><i class="fa-solid fa-layer-group"></i></div>
+                    <h3 style="margin-bottom: 8px;">quant.factors</h3>
+                    <p style="font-size: 0.85rem;">57 alpha factors &amp; composites</p>
+                </div>
+                <div class="feature-card" style="text-align: center;">
+                    <div class="feature-icon" style="margin: 0 auto 20px;"><i class="fa-solid fa-sliders"></i></div>
+                    <h3 style="margin-bottom: 8px;">quant.strategies</h3>
+                    <p style="font-size: 0.85rem;">30+ composable strategies</p>
+                </div>
+                <div class="feature-card" style="text-align: center;">
+                    <div class="feature-icon" style="margin: 0 auto 20px;"><i class="fa-solid fa-shield-halved"></i></div>
+                    <h3 style="margin-bottom: 8px;">quant.risk</h3>
+                    <p style="font-size: 0.85rem;">51 risk analytics functions</p>
+                </div>
+                <div class="feature-card" style="text-align: center;">
+                    <div class="feature-icon" style="margin: 0 auto 20px;"><i class="fa-solid fa-chart-mixed"></i></div>
+                    <h3 style="margin-bottom: 8px;">quant.backtest</h3>
+                    <p style="font-size: 0.85rem;">Event-driven backtester</p>
+                </div>
+                <div class="feature-card" style="text-align: center;">
+                    <div class="feature-icon" style="margin: 0 auto 20px;"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
+                    <h3 style="margin-bottom: 8px;">quant.optimizer</h3>
+                    <p style="font-size: 0.85rem;">Walk-forward optimization</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta">
+        <div class="container">
+            <h2>Ready to Build Your Trading System?</h2>
+            <p>Clone the repository, install dependencies, and start backtesting in minutes. Fully open-source under MIT license.</p>
+            <a href="https://github.com/yuanjing-sudo/ai-trading-system" target="_blank" class="btn btn-primary" style="font-size: 1.1rem; padding: 14px 32px;">Clone on GitHub <i class="fa-brands fa-github"></i></a>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container footer-content">
+            <div>
+                &copy; 2026 AI Trading System. Open-source quantitative trading platform.
+            </div>
+            <ul class="social">
+                <li><a href="https://github.com/yuanjing-sudo/ai-trading-system" target="_blank"><i class="fa-brands fa-github"></i></a></li>
+                <li><a href="#"><i class="fa-brands fa-twitter"></i></a></li>
+                <li><a href="#"><i class="fa-brands fa-linkedin"></i></a></li>
+            </ul>
+        </div>
+    </footer>
+
+    <script>
+        // Tab switching
+        function showTab(tabId) {
+            document.querySelectorAll('.demo-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // Generate synthetic OHLCV data for demo
+        function generateOHLCV(n = 200, seed = 42) {
+            const rng = new seedrandom(seed);
+            const dates = [];
+            const opens = [], highs = [], lows = [], closes = [];
+            let price = 100;
+            const now = new Date();
+            for (let i = 0; i < n; i++) {
+                const d = new Date(now);
+                d.setDate(now.getDate() - (n - 1 - i));
+                dates.push(d.toISOString().split('T')[0]);
+                const change = (rng() - 0.5) * 4;
+                const open = price * (1 + (rng() - 0.5) * 0.02);
+                const close = open + change;
+                const high = Math.max(open, close) * (1 + Math.abs(rng()) * 0.01);
+                const low = Math.min(open, close) * (1 - Math.abs(rng()) * 0.01);
+                opens.push(open); highs.push(high); lows.push(low); closes.push(close);
+                price = close;
+            }
+            return { dates, opens, highs, lows, closes };
+        }
+
+        // Simple seeded random
+        function seedrandom(seed) {
+            let s = seed;
+            return function() {
+                s = (s * 9301 + 49297) % 233280;
+                return s / 233280;
+            };
+        }
+
+        // Render candlestick chart
+        function renderCandlestick() {
+            const data = generateOHLCV(200, 42);
+            const trace = {
+                type: 'candlestick',
+                x: data.dates,
+                open: data.opens,
+                high: data.highs,
+                low: data.lows,
+                close: data.closes,
+                increasing: { line: { color: '#22c55e' }, fillcolor: '#22c55e' },
+                decreasing: { line: { color: '#ef4444' }, fillcolor: '#ef4444' },
+                name: 'AAPL',
+                hoverinfo: 'x+y+open+high+low+close'
+            };
+            const layout = {
+                title: 'AAPL - Daily Candlestick (Demo)',
+                xaxis: { title: 'Date', rangeslider: { visible: false } },
+                yaxis: { title: 'Price (USD)' },
+                margin: { l: 60, r: 40, t: 50, b: 40 },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#e0e0e0' },
+                annotations: [
+                    {
+                        x: data.dates[Math.floor(data.dates.length * 0.7)],
+                        y: data.closes[Math.floor(data.closes.length * 0.7)],
+                        xref: 'x', yref: 'y',
+                        text: 'AI Signal: BUY',
+                        showarrow: true,
+                        arrowhead: 2,
+                        ax: 0, ay: -40,
+                        font: { color: '#22c55e', size: 14 },
+                        bgcolor: 'rgba(34,197,94,0.1)',
+                        bordercolor: '#22c55e',
+                        borderwidth: 1,
+                        borderpad: 4
+                    }
+                ]
+            };
+            Plotly.newPlot('candlestickChart', [trace], layout, {responsive: true});
+
+            // Update metrics
+            const lastClose = data.closes[data.closes.length - 1];
+            const prevClose = data.closes[data.closes.length - 2];
+            const change = ((lastClose - prevClose) / prevClose * 100).toFixed(2);
+            document.getElementById('m-price').textContent = '$' + lastClose.toFixed(2);
+            document.getElementById('m-change').textContent = change + '%';
+            document.getElementById('m-change').style.color = change >= 0 ? 'var(--success)' : 'var(--danger)';
+            document.getElementById('m-rsi').textContent = (55 + Math.round(Math.random() * 20)).toFixed(0);
+            document.getElementById('m-signal').textContent = 'BUY';
+            document.getElementById('m-signal').style.color = 'var(--success)';
+        }
+
+        // Render backtest equity curve
+        function renderBacktest() {
+            const rng = new seedrandom(123);
+            const dates = [];
+            const equity = [];
+            let value = 100000;
+            const now = new Date();
+            for (let i = 0; i < 252; i++) {
+                const d = new Date(now);
+                d.setDate(now.getDate() - (252 - 1 - i));
+                dates.push(d.toISOString().split('T')[0]);
+                const dailyReturn = (rng() - 0.5) * 0.02 + 0.0005;
+                value = value * (1 + dailyReturn);
+                equity.push(value);
+            }
+            const trace = {
+                type: 'scatter',
+                mode: 'lines',
+                x: dates,
+                y: equity,
+                line: { color: '#00d4ff', width: 2 },
+                fill: 'tozeroy',
+                fillcolor: 'rgba(0,212,255,0.1)',
+                name: 'Portfolio Equity'
+            };
+            const layout = {
+                title: 'Backtest Equity Curve (Demo)',
+                xaxis: { title: 'Date', rangeslider: { visible: false } },
+                yaxis: { title: 'Portfolio Value (USD)' },
+                margin: { l: 60, r: 40, t: 50, b: 40 },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#e0e0e0' },
+            };
+            Plotly.newPlot('backtestResults', [trace], layout, {responsive: true});
+
+            // Update metrics
+            const totalReturn = ((equity[equity.length - 1] / 100000) - 1) * 100;
+            const sharpe = (1.2 + Math.random() * 0.5).toFixed(2);
+            const mdd = (-(5 + Math.random() * 8)).toFixed(1);
+            const winRate = (55 + Math.random() * 15).toFixed(0);
+            document.getElementById('bt-return').textContent = totalReturn.toFixed(2) + '%';
+            document.getElementById('bt-sharpe').textContent = sharpe;
+            document.getElementById('bt-mdd').textContent = mdd + '%';
+            document.getElementById('bt-winrate').textContent = winRate + '%';
+        }
+
+        // Initialize
+        renderCandlestick();
+        renderBacktest();
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            Plotly.Plots.resize(document.getElementById('candlestickChart'));
+            Plotly.Plots.resize(document.getElementById('backtestResults'));
+        });
+    </script>
+</body>
+</html>

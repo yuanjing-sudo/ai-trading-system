@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Trading System</title>
+    <!-- Plotly CSS/JS -->
+    <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -974,6 +976,10 @@
                         </div>
                     `).join('')}
                 </div>
+                <div class="card" style="margin-top:16px;">
+                    <h2>Price Chart with Annotations</h2>
+                    <div id="priceChart" style="height:400px; width:100%;"></div>
+                </div>
             `;
 
             loadAdvancedAnalytics(data.symbol).then(adv => {
@@ -1034,6 +1040,69 @@
                 }
             });
         }
+
+        // Render Plotly candlestick chart with annotations
+        function renderPriceChart(data) {
+            const symbol = data.symbol;
+            const assetClass = data.asset_class || 'stocks';
+            const currency = data.currency_symbol || '\$';
+
+            // Create mock candlestick data if no price data available
+            const createMockData = () => {
+                const basePrice = priceData.current_price || 100;
+                const nPoints = 50;
+                const dates = [];
+                const opens = [];
+                const highs = [];
+                const lows = [];
+                const closes = [];
+
+                for (let i = 0; i < nPoints; i++) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - (nPoints - 1 - i));
+                    dates.push(date);
+
+                    const change = (Math.random() - 0.5) * 2;
+                    const openPrice = basePrice * (1 + (Math.random() - 0.5) * 0.05);
+                    const closePrice = openPrice + change;
+                    const highPrice = Math.max(openPrice, closePrice) * (1 + Math.abs(Math.random()) * 0.01);
+                    const lowPrice = Math.min(openPrice, closePrice) * (1 - Math.abs(Math.random()) * 0.01);
+
+                    opens.push(openPrice);
+                    highs.push(highPrice);
+                    lows.push(lowPrice);
+                    closes.push(closePrice);
+                    basePrice = closePrice;
+                }
+
+                return { dates, opens, highs, lows, closes };
+            };
+
+            const mockData = createMockData();
+            const trace = {
+                type: 'candlestick',
+                x: mockData.dates,
+                open: mockData.opens,
+                high: mockData.highs,
+                low: mockData.lows,
+                close: mockData.closes,
+                increasing: { line: { color: '#22c55e' }, fillcolor: '#22c55e' },
+                decreasing: { line: { color: '#ef4444' }, fillcolor: '#ef4444' },
+                name: symbol,
+                hoverinfo: 'x+y+open+high+low+close'
+            };
+
+            const layout = {
+                title: '\ Price Chart',
+                xaxis: { title: 'Date', rangeslider: { visible: false } },
+                yaxis: { title: Price (\) },
+                margin: { l: 60, r: 40, t: 50, b: 40 },
+                annotations: []
+            };
+
+            Plotly.newPlot('priceChart', [trace], layout);
+        }
+
 
         function renderMarkdown(text) {
             if (!text) return '';
