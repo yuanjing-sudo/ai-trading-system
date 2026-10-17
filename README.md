@@ -19,6 +19,13 @@ Institutional-Grade Adaptive Market Prediction Engine with web interface.
 - Automatic feature health monitoring (drift detection via PSI)
 - Multi-asset cross-sectional alpha + per-asset time-series alpha fusion
 - Web UI with search bar for any stock, ETF, or crypto
+- WorldQuant Alpha101 factor library (101 formulaic alphas)
+- Quant toolkit: 100+ indicators, 50+ factors, 25 strategies, risk metrics, backtester, walk-forward optimizer
+- pandas-ta / TA-Lib wrappers, CCXT crypto cross-exchange data, quantstats tear sheets
+- Live annotatable Plotly charts (drawing tools, persistent notes per symbol)
+- Multi-agent AI research team (technical / fundamental / sentiment / risk / PM) on local Ollama, with deterministic offline fallback
+- 100-repo integration catalog with optional adapters (`integrations/`, see `docs/INTEGRATIONS.md`)
+- GitHub cloud data pipeline: scheduled Actions snapshots stored in-repo and served via GitHub Pages
 
 ## Quick Start
 
@@ -30,6 +37,22 @@ python -m api.server
 ```
 
 Open http://localhost:8000 in your browser.
+
+### Cloud snapshot (GitHub as free cloud storage)
+
+```bash
+python scripts/cloud_snapshot.py --tickers AAPL MSFT NVDA --days 400
+# writes docs/data/dashboard.json + docs/data/bars/*.json (served by GitHub Pages)
+```
+
+The `.github/workflows/cloud-data.yml` workflow refreshes the snapshot every weekday and commits it to the repo - the Pages site shows it live under "Live Cloud Snapshot".
+
+### Optional integrations
+
+```bash
+pip install -r requirements-optional.txt   # any subset; all adapters degrade gracefully
+python test_integrations.py                # verify available/fake deps and fallbacks
+```
 
 ### CLI
 
@@ -45,6 +68,8 @@ python main.py --mode backtest --symbols AAPL MSFT NVDA TSLA
 curl http://localhost:8000/api/analyze/AAPL
 curl http://localhost:8000/api/analyze_batch?symbols=AAPL,MSFT,NVDA
 curl http://localhost:8000/api/market_state
+curl http://localhost:8000/api/integrations
+curl http://localhost:8000/api/agents/AAPL
 ```
 
 ## Architecture
@@ -52,11 +77,15 @@ curl http://localhost:8000/api/market_state
 ```
 ai_trading_system/
 ├── api/server.py          # FastAPI web server
-├── web/index.html         # Frontend with search bar
+├── web/index.html         # Frontend with search bar + annotatable charts
 ├── config.py              # Configuration management
 ├── data/                  # Data ingestion & feature engineering
 ├── models/                # XGBoost, AI analyst, ensemble
 ├── predictor/             # Advanced prediction engine subsystem
+├── quant/                 # Standalone quant library (indicators/factors/strategies/risk/backtest/optimizer/alpha101)
+├── integrations/          # 100-repo integration layer (data, analytics, backends, storage, agents)
+├── scripts/               # Cloud snapshot + docs generators
+├── docs/                  # GitHub Pages site + cloud data
 ├── scanner/               # Multi-factor scanner & patterns
 ├── strategy/              # Signals, risk, portfolio construction
 ├── backtest/              # Backtesting engine & metrics

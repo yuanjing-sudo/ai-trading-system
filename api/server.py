@@ -165,6 +165,7 @@ class AnalysisResponse(BaseModel):
     market_state: Dict
     feature_importance: List[Dict]
     asset_specific: Dict
+    price_history: Dict = {}
 
 
 class SearchResult(BaseModel):
@@ -608,6 +609,26 @@ def _analyze_sync(symbol: str, asset_class: str, currency: str, start: str, end:
             if col in preds.columns:
                 preds[col] = preds[col].apply(lambda x: x * rate)
 
+        history = {"dates": [], "open": [], "high": [], "low": [],
+                   "close": [], "volume": []}
+        df_hist = price_data.get(symbol)
+        if df_hist is not None and not df_hist.empty:
+            h = df_hist.tail(250).copy()
+            cols = {str(c).lower(): c for c in h.columns}
+            history["dates"] = [pd.Timestamp(i).strftime("%Y-%m-%d") for i in h.index]
+            for key in ("open", "high", "low", "close", "volume"):
+                col = cols.get(key, cols.get("adj close" if key == "close" else key))
+                if col is not None:
+                    history[key] = [
+                        None if pd.isna(v) else float(v) for v in h[col].values
+                    ]
+            if not history["close"]:
+                first_num = h.select_dtypes("number").columns
+                if len(first_num):
+                    history["close"] = [
+                        None if pd.isna(v) else float(v) for v in h[first_num[0]].values
+                    ]
+
         return AnalysisResponse(
             symbol=symbol.upper(),
             asset_class=asset_class,
@@ -619,6 +640,7 @@ def _analyze_sync(symbol: str, asset_class: str, currency: str, start: str, end:
             market_state=mstate,
             feature_importance=feature_importance,
             asset_specific=asset_specific,
+            price_history=history,
         ).dict()
     except HTTPException:
         raise
@@ -896,6 +918,45 @@ async def improved_analysis(
         raise
     except Exception as e:
         logger.error(f"Improved analysis failed for {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/integrations")
+async def integrations_status():
+    try:
+        from integrations import full_status
+        return full_status()
+    except Exception as e:
+        logger.error(f"Integrations status failed: {e}")
+        return {"error": str(e)}
+
+
+@app.get("/api/integrations/repos")
+async def integrations_repos(category: str | None = None, status: str | None = None):
+    from integrations import to_records
+    records = to_records()
+    if category:
+        records = [r for r in records if r["category"] == category]
+    if status:
+        records = [r for r in records if r["status"] == status]
+    return {"count": len(records), "repos": records}
+
+
+@app.get("/api/agents/{symbol}")
+async def agent_analysis(symbol: str, start: str = "2022-01-01",
+                         end: str = "2024-12-31"):
+    symbol = _resolve_symbol(symbol)
+    try:
+        price_data = _fetcher.fetch([symbol], start, end)
+        df = price_data.get(symbol)
+        if df is None or df.empty:
+            raise HTTPException(status_code=404, detail=f"No data for {symbol}")
+        from integrations.agents import analyze_symbol as _run_agents
+        return _run_agents(symbol, df)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Agent analysis failed for {symbol}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

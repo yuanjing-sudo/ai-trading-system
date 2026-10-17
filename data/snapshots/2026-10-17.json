@@ -1,0 +1,46 @@
+{
+  "generated_at": "2026-10-17T03:33:23.542237Z",
+  "universe": [
+    {
+      "price": 343.46,
+      "ret_1d": 0.004269,
+      "ret_20d": 0.021807,
+      "rsi14": 62.08,
+      "ma20": 337.424,
+      "ma50": 325.694,
+      "ann_vol": 0.255,
+      "high_52w": 343.46,
+      "low_52w": 269.6887,
+      "ticker": "AAPL",
+      "agents": {
+        "decision": "BUY",
+        "confidence": 0.95,
+        "score": 0.721,
+        "suggested_weight": 0.25,
+        "summary": "Team vote (technical_analyst: BUY; fundamentals_analyst: BUY; sentiment_analyst: HOLD), aggregated score +0.72. Risk: vol=26.8%, maxDD=-12.7%, VaR95=-1.91%; within all limits"
+      }
+    },
+    {
+      "price": 81485.3203,
+      "ret_1d": -0.007988,
+      "ret_20d": -0.034608,
+      "rsi14": 46.43,
+      "ma20": 83560.6285,
+      "ma50": 81251.5495,
+      "ann_vol": 0.3682,
+      "high_52w": 86602.9141,
+      "low_52w": 58558.8594,
+      "ticker": "BTC-USD",
+      "agents": {
+        "decision": "BUY",
+        "confidence": 0.732,
+        "score": 0.432,
+        "suggested_weight": 0.25,
+        "summary": "Team vote (technical_analyst: BUY; fundamentals_analyst: HOLD; sentiment_analyst: HOLD), aggregated score +0.43. Risk: vol=31.0%, maxDD=-8.8%, VaR95=-2.50%; within all limits"
+      }
+    }
+  ],
+  "sources": {
+    "yfinance": true
+  }
+}

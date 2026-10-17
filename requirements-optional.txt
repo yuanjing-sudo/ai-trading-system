@@ -1,0 +1,42 @@
+# Optional integrations - install any subset; every adapter has a fallback.
+# Auto-detected at runtime; status via `python -c "from integrations import full_status; print(full_status())"`
+
+# --- Market data (integrations/market_data.py) ---
+akshare
+tushare
+finance-database
+FinanceToolkit
+sec-edgar-downloader
+openbb
+nasdaq-data-link
+cryptofeed
+
+# --- Analytics (integrations/analytics.py) ---
+TA-Lib
+riskfolio-lib
+PyPortfolioOpt
+cvxportfolio
+FinQuant
+financepy
+py-vollib
+precise
+alphalens-reloaded
+pyfolio-reloaded
+gs-quant
+
+# --- Backtesting backends (integrations/backends.py) ---
+backtrader
+backtesting
+vectorbt
+qlib
+freqtrade
+nautilus_trader
+
+# --- Storage (integrations/storage.py) ---
+duckdb
+polars
+arcticdb
+pyarrow
+
+# --- Charts ---
+# tradingview lightweight-charts is loaded via CDN in web/index.html (no pip needed)

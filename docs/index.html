@@ -497,6 +497,33 @@ print(result.metrics)
         </div>
     </section>
 
+    <section id="cloud-data" style="padding: 60px 0;">
+        <div class="container">
+            <div class="section-header">
+                <span class="badge badge-ai">GitHub Cloud</span>
+                <h2>Live Cloud Snapshot</h2>
+                <p>Data is refreshed automatically by GitHub Actions and stored in this repository - no server required.</p>
+            </div>
+            <div id="cloudMeta" style="text-align:center; margin-bottom:16px; color:#94a3b8; font-size:0.9rem;">Loading snapshot...</div>
+            <div style="overflow-x:auto;">
+                <table id="cloudTable" style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+                    <thead>
+                        <tr style="text-align:left; border-bottom:1px solid #334155;">
+                            <th style="padding:10px;">Ticker</th>
+                            <th style="padding:10px;">Price</th>
+                            <th style="padding:10px;">1d</th>
+                            <th style="padding:10px;">20d</th>
+                            <th style="padding:10px;">RSI14</th>
+                            <th style="padding:10px;">Ann. Vol</th>
+                            <th style="padding:10px;">AI Decision</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cloudTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
     <section class="cta">
         <div class="container">
             <h2>Ready to Build Your Trading System?</h2>
@@ -526,6 +553,40 @@ print(result.metrics)
             event.currentTarget.classList.add('active');
             document.getElementById(tabId).classList.add('active');
         }
+
+        // Live cloud snapshot from GitHub (written by .github/workflows/cloud-data.yml)
+        async function loadCloudSnapshot() {
+            const meta = document.getElementById('cloudMeta');
+            const tbody = document.getElementById('cloudTableBody');
+            try {
+                const resp = await fetch('data/dashboard.json', { cache: 'no-store' });
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                const dash = await resp.json();
+                const rows = (dash.universe || []).filter(u => !u.error);
+                if (!rows.length) throw new Error('empty snapshot');
+                meta.textContent = 'Snapshot generated ' + new Date(dash.generated_at).toLocaleString() + ' - ' + rows.length + ' tickers';
+                const fmtPct = v => v === null || v === undefined ? '--' : (v * 100).toFixed(2) + '%';
+                tbody.innerHTML = rows.map(u => {
+                    const price = (u.price !== null && u.price !== undefined) ? u.price.toLocaleString() : '--';
+                    const dec = u.agents && u.agents.decision ? u.agents.decision : '--';
+                    const decColor = dec === 'BUY' ? '#22c55e' : dec === 'SELL' ? '#ef4444' : '#f59e0b';
+                    const ret1 = u.ret_1d >= 0 ? '#22c55e' : '#ef4444';
+                    const ret20 = u.ret_20d >= 0 ? '#22c55e' : '#ef4444';
+                    return '<tr style="border-bottom:1px solid #1e293b;">' +
+                        '<td style="padding:10px; font-weight:600;">' + u.ticker + '</td>' +
+                        '<td style="padding:10px;">' + price + '</td>' +
+                        '<td style="padding:10px; color:' + ret1 + ';">' + fmtPct(u.ret_1d) + '</td>' +
+                        '<td style="padding:10px; color:' + ret20 + ';">' + fmtPct(u.ret_20d) + '</td>' +
+                        '<td style="padding:10px;">' + (u.rsi14 !== undefined ? u.rsi14.toFixed(1) : '--') + '</td>' +
+                        '<td style="padding:10px;">' + fmtPct(u.ann_vol) + '</td>' +
+                        '<td style="padding:10px; color:' + decColor + '; font-weight:600;">' + dec + '</td>' +
+                        '</tr>';
+                }).join('');
+            } catch (e) {
+                meta.textContent = 'No snapshot yet - run the "Cloud Data Snapshot" workflow in GitHub Actions, or run scripts/cloud_snapshot.py locally.';
+            }
+        }
+        loadCloudSnapshot();
 
         // Generate synthetic OHLCV data for demo
         function generateOHLCV(n = 200, seed = 42) {

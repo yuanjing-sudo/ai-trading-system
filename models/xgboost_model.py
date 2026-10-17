@@ -75,12 +75,18 @@ class XGBoostPredictor:
 
         preds = model.predict_proba(X_va)[:, 1]
         labels = (preds > 0.5).astype(int)
+        if y_va.nunique() < 2:
+            auc_val = 0.5
+            ll = float("nan")
+        else:
+            auc_val = roc_auc_score(y_va, preds)
+            ll = log_loss(y_va, np.column_stack([1.0 - preds, preds]), labels=[0, 1])
         m = ModelMetrics(
-            auc=roc_auc_score(y_va, preds),
+            auc=float(auc_val),
             accuracy=accuracy_score(y_va, labels),
             precision=precision_score(y_va, labels, zero_division=0),
             recall=recall_score(y_va, labels, zero_division=0),
-            logloss=log_loss(y_va, preds),
+            logloss=float(ll),
             n_train=len(X_tr), n_valid=len(X_va),
         )
         self.models[horizon] = model

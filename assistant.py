@@ -1,10 +1,21 @@
 from __future__ import annotations
 import json
 import logging
+import re
+import time
 from typing import Dict, List, Optional
-from datetime import datetime
 
 logger = logging.getLogger("assistant")
+
+_RESEARCH_WORDS = (
+    "deep dive", "deep research", "deep analysis", "full analysis", "research",
+    "multi-agent", "multi agent", "agent team", "analyst team", "research note",
+    "committee", "second opinion", "full report",
+)
+_SYMBOL_STOPWORDS = {
+    "I", "A", "AI", "OK", "PM", "CEO", "FED", "GDP", "CPI", "USD", "ETF",
+    "RSI", "MACD", "ATR", "API", "UI", "LLM", "VAR", "EOD",
+}
 
 
 class AIAssistant:
@@ -12,43 +23,188 @@ class AIAssistant:
         self.base_url = base_url
         self.model = "qwen2.5-coder:7b"
         self.conversation_history: List[Dict[str, str]] = []
+        self._ollama_up: Optional[bool] = None
+        self._ollama_checked = 0.0
 
     async def ask(self, question: str, context: Optional[Dict] = None) -> str:
+        context = context or {}
         self.conversation_history.append({"role": "user", "content": question})
+
+        answer = None
+        if self._wants_research(question):
+            symbol = self._resolve_symbol(question, context)
+            if symbol:
+                answer = self._run_research(symbol, context)
+        if answer is None:
+            answer = await self._ask_llm(question, context)
+        if answer is None:
+            answer = self._fallback_response(question, context)
+
+        self.conversation_history.append({"role": "assistant", "content": answer})
+        return answer
+
+    async def _ask_llm(self, question: str, context: Dict) -> Optional[str]:
+        if not self._ollama_available():
+            return None
         try:
             import httpx
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.post(
-                    f"{self.base_url}/api/chat",
-                    json={
-                        "model": self.model,
-                        "messages": [{"role": "system", "content": self._build_system_prompt(context)},
-                                     *self.conversation_history[-6:]],
-                        "stream": False,
-                    },
-                )
-                if resp.status_code == 200:
-                    result = resp.json()
-                    answer = result.get("message", {}).get("content", "")
-                    if answer:
-                        self.conversation_history.append({"role": "assistant", "content": answer})
-                        return answer
+            payload = {
+                "model": self.model,
+                "messages": [{"role": "system", "content": self._build_system_prompt(context)},
+                             *self.conversation_history[-6:]],
+                "stream": False,
+            }
+            async with httpx.AsyncClient(timeout=90.0) as client:
+                resp = await client.post(f"{self.base_url}/api/chat", json=payload)
+            if resp.status_code == 200:
+                answer = resp.json().get("message", {}).get("content", "").strip()
+                if answer:
+                    return answer
+            logger.warning(f"Ollama assistant returned HTTP {resp.status_code}")
         except Exception as e:
             logger.warning(f"Ollama assistant failed: {e}")
-        fallback = self._fallback_response(question, context)
-        self.conversation_history.append({"role": "assistant", "content": fallback})
-        return fallback
+            self._ollama_up = None
+        return None
 
-    def _build_system_prompt(self, context: Optional[Dict]) -> str:
+    def _ollama_available(self) -> bool:
+        now = time.time()
+        if self._ollama_up is not None and now - self._ollama_checked < 30:
+            return self._ollama_up
+        try:
+            import httpx
+            resp = httpx.get(f"{self.base_url}/api/tags", timeout=2.0)
+            self._ollama_up = resp.status_code == 200
+        except Exception:
+            self._ollama_up = False
+        self._ollama_checked = now
+        return self._ollama_up
+
+    def _build_system_prompt(self, context: Dict) -> str:
+        compressed = self._compress_context(context)
         ctx = ""
-        if context:
-            ctx = f"\n\nCurrent Analysis Context:\n{json.dumps(context, indent=2, default=str)[:3000]}"
+        if compressed:
+            ctx = (f"\n\nCurrent Analysis Context (price_stats were computed locally "
+                   f"from the latest bars - trust these numbers):\n"
+                   f"{json.dumps(compressed, indent=2, default=str)[:3500]}")
 
         return f"""You are an expert quantitative trading assistant embedded in an institutional-grade AI trading system.
 You help traders understand predictions, risk, and market dynamics.
 Always provide clear, actionable insights. Use data from the analysis context when available.
 If asked about specific numbers, reference the actual prediction data provided.
 Keep responses concise but informative. Format with markdown when helpful.{ctx}"""
+
+    @staticmethod
+    def _compress_context(context: Dict) -> Dict:
+        compressed = {k: v for k, v in context.items() if k != "price_history"}
+        closes = [c for c in ((context.get("price_history") or {}).get("close") or [])
+                  if isinstance(c, (int, float))]
+        if len(closes) >= 30:
+            try:
+                import numpy as np
+                c = np.asarray(closes, dtype=float)
+                ma20 = float(c[-20:].mean())
+                ret = c[1:] / c[:-1] - 1.0
+                compressed["price_stats"] = {
+                    "last_close": round(float(c[-1]), 4),
+                    "change_20d_pct": round(float(c[-1] / c[-21] - 1) * 100, 2) if len(c) >= 21 else None,
+                    "ma20": round(ma20, 4),
+                    "above_ma20": bool(c[-1] > ma20),
+                    "ann_vol_20d_pct": round(float(ret[-20:].std() * (252 ** 0.5)) * 100, 2),
+                    "period_high": round(float(c.max()), 4),
+                    "period_low": round(float(c.min()), 4),
+                    "rsi14": AIAssistant._rsi(c, 14),
+                }
+            except Exception as e:
+                logger.debug(f"Price stats failed: {e}")
+        return compressed
+
+    @staticmethod
+    def _rsi(closes, period: int = 14) -> float:
+        if len(closes) < period + 1:
+            return 50.0
+        try:
+            import numpy as np
+            diff = np.diff(np.asarray(closes[-(period + 1):], dtype=float))
+            avg_gain = float(np.clip(diff, 0, None).sum()) / period
+            avg_loss = float(np.clip(-diff, 0, None).sum()) / period
+        except Exception:
+            return 50.0
+        if avg_loss == 0:
+            return 100.0 if avg_gain > 0 else 50.0
+        rs = avg_gain / avg_loss
+        return round(100.0 - 100.0 / (1.0 + rs), 1)
+
+    @staticmethod
+    def _wants_research(question: str) -> bool:
+        q = question.lower()
+        return any(w in q for w in _RESEARCH_WORDS)
+
+    @staticmethod
+    def _resolve_symbol(question: str, context: Dict) -> Optional[str]:
+        symbol = context.get("symbol")
+        if isinstance(symbol, str) and symbol.strip():
+            return symbol.strip().upper()
+        for sig in (context.get("signals") or []):
+            if isinstance(sig, dict) and sig.get("symbol"):
+                return str(sig["symbol"]).upper()
+        for token in re.findall(r"\b[A-Z][A-Z0-9]{0,6}(?:[-/][A-Z]{2,5})?\b", question):
+            if token not in _SYMBOL_STOPWORDS:
+                return token
+        return None
+
+    def _run_research(self, symbol: str, context: Dict) -> Optional[str]:
+        try:
+            from integrations.agents import analyze_symbol
+            prices = self._prices_from_context(context)
+            if prices is None or len(prices) < 60:
+                prices = self._fetch_prices(symbol)
+            if prices is None or len(prices) < 60:
+                return None
+            result = analyze_symbol(symbol, prices)
+            report = (result.get("report_markdown") or "").strip()
+            if report:
+                mode = ("local AI agents (Ollama)" if result.get("llm_available")
+                        else "rule-based agents (Ollama offline - start it for richer copy)")
+                return f"{report}\n\n*Generated by the multi-agent research team: {mode}.*"
+        except Exception as e:
+            logger.warning(f"Deep research failed for {symbol}: {e}")
+        return None
+
+    @staticmethod
+    def _prices_from_context(context: Dict):
+        history = context.get("price_history") or {}
+        closes = [c for c in (history.get("close") or []) if isinstance(c, (int, float))]
+        if len(closes) < 60:
+            return None
+        try:
+            import pandas as pd
+            index = history.get("dates") or list(range(len(closes)))
+            frame = pd.DataFrame({
+                "open": history.get("open") or closes,
+                "high": history.get("high") or closes,
+                "low": history.get("low") or closes,
+                "close": closes,
+                "volume": history.get("volume") or [0] * len(closes),
+            }, index=index)
+            return frame.dropna(subset=["close"])
+        except Exception:
+            return None
+
+    @staticmethod
+    def _fetch_prices(symbol: str, period: str = "400d"):
+        try:
+            import yfinance as yf
+            frame = yf.download(symbol, period=period, interval="1d",
+                                progress=False, auto_adjust=True)
+            if frame is None or frame.empty:
+                return None
+            if getattr(frame.columns, "nlevels", 1) > 1:
+                frame.columns = [c[0] if isinstance(c, tuple) else c for c in frame.columns]
+            frame.columns = [str(c).lower() for c in frame.columns]
+            return frame
+        except Exception as e:
+            logger.warning(f"Price fetch failed for {symbol}: {e}")
+            return None
 
     def _fallback_response(self, question: str, context: Optional[Dict]) -> str:
         q_lower = question.lower()
@@ -77,7 +233,8 @@ Keep responses concise but informative. Format with markdown when helpful.{ctx}"
             return "Market regime information is shown in the top bar. It affects the risk multiplier applied to predictions."
         if any(w in q_lower for w in ["null", "none", "nothing", "unknown"]):
             return "I couldn't find specific data for that query. Try asking about predictions, risk metrics, feature importance, or the current market regime."
-        return "I can help you understand the analysis. Ask me about predictions, risk metrics, feature importance, market regime, or trading recommendations."
+        hint = " For a full multi-agent research note, ask e.g. \"deep dive on AAPL\"."
+        return "I can help you understand the analysis. Ask me about predictions, risk metrics, feature importance, market regime, or trading recommendations." + hint
 
     def reset_conversation(self):
         self.conversation_history.clear()

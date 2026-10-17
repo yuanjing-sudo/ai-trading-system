@@ -321,6 +321,18 @@
             gap: 12px;
             margin-bottom: 8px;
         }
+        .chart-btn {
+            background: #1f2937;
+            color: #e5e7eb;
+            border: 1px solid #374151;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .chart-btn:hover {
+            background: #374151;
+        }
         .feature-name {
             width: 180px;
             font-size: 12px;
@@ -977,8 +989,13 @@
                     `).join('')}
                 </div>
                 <div class="card" style="margin-top:16px;">
-                    <h2>Price Chart with Annotations</h2>
-                    <div id="priceChart" style="height:400px; width:100%;"></div>
+                    <h2>Live Annotatable Chart</h2>
+                    <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+                        <button onclick="toggleChartNoteMode()" id="noteModeBtn" class="chart-btn">Add Note: OFF</button>
+                        <button onclick="clearChartAnnotations()" class="chart-btn">Clear Annotations</button>
+                        <span style="font-size:12px; color:#9ca3af; align-self:center;">Use the toolbar (left) to draw lines, boxes & circles - they save automatically per symbol.</span>
+                    </div>
+                    <div id="priceChart" style="height:420px; width:100%;"></div>
                 </div>
             `;
 
@@ -1041,66 +1058,150 @@
             });
         }
 
-        // Render Plotly candlestick chart with annotations
+        // Live annotatable Plotly chart (real OHLC data + persistent annotations)
+        let _chartNoteMode = false;
+        let _chartSymbol = null;
+
+        function _annotationKey(symbol) {
+            return 'chart_annotations_' + (symbol || 'unknown');
+        }
+
+        function _loadAnnotations(symbol) {
+            try {
+                const raw = localStorage.getItem(_annotationKey(symbol));
+                return raw ? JSON.parse(raw) : { shapes: [], annotations: [] };
+            } catch (e) {
+                return { shapes: [], annotations: [] };
+            }
+        }
+
+        function _saveAnnotations(symbol, graphDiv) {
+            try {
+                const shapes = (graphDiv.layout.shapes || []).map(s => JSON.parse(JSON.stringify(s)));
+                const annotations = (graphDiv.layout.annotations || [])
+                    .filter(a => a.text)
+                    .map(a => JSON.parse(JSON.stringify(a)));
+                localStorage.setItem(_annotationKey(symbol), JSON.stringify({ shapes, annotations }));
+            } catch (e) { /* storage full or blocked */ }
+        }
+
+        function toggleChartNoteMode() {
+            _chartNoteMode = !_chartNoteMode;
+            const btn = document.getElementById('noteModeBtn');
+            if (btn) {
+                btn.textContent = 'Add Note: ' + (_chartNoteMode ? 'ON - click chart' : 'OFF');
+                btn.style.background = _chartNoteMode ? '#2563eb' : '';
+            }
+        }
+
+        function clearChartAnnotations() {
+            const gd = document.getElementById('priceChart');
+            if (!gd || !_chartSymbol) return;
+            Plotly.relayout(gd, { shapes: [], annotations: [] });
+            localStorage.removeItem(_annotationKey(_chartSymbol));
+        }
+
+        function _attachChartEvents(graphDiv, symbol, currency) {
+            graphDiv.removeAllListeners && graphDiv.removeAllListeners('plotly_relayout');
+            graphDiv.on('plotly_relayout', () => _saveAnnotations(symbol, graphDiv));
+            graphDiv.on('plotly_click', (evt) => {
+                if (!_chartNoteMode || !evt.points || !evt.points.length) return;
+                const p = evt.points[0];
+                const text = prompt('Note for ' + p.x + ':');
+                if (!text) return;
+                const note = {
+                    x: p.x, y: p.y, text: text, showarrow: true,
+                    arrowhead: 6, ax: 0, ay: -40,
+                    bgcolor: 'rgba(37, 99, 235, 0.85)', font: { color: '#fff', size: 12 }
+                };
+                Plotly.relayout(graphDiv, { 'annotations[' + (graphDiv.layout.annotations || []).length + ']': note }).then(() => {
+                    _saveAnnotations(symbol, graphDiv);
+                });
+            });
+        }
+
         function renderPriceChart(data) {
-            const symbol = data.symbol;
-            const assetClass = data.asset_class || 'stocks';
-            const currency = data.currency_symbol || '\$';
+            const symbol = data.symbol || 'ASSET';
+            _chartSymbol = symbol;
+            const currency = data.currency_symbol || '$';
+            const hist = data.price_history || {};
+            const hasReal = hist.dates && hist.dates.length > 1;
 
-            // Create mock candlestick data if no price data available
-            const createMockData = () => {
-                const basePrice = priceData.current_price || 100;
-                const nPoints = 50;
-                const dates = [];
-                const opens = [];
-                const highs = [];
-                const lows = [];
-                const closes = [];
-
-                for (let i = 0; i < nPoints; i++) {
-                    const date = new Date();
-                    date.setDate(date.getDate() - (nPoints - 1 - i));
-                    dates.push(date);
-
-                    const change = (Math.random() - 0.5) * 2;
-                    const openPrice = basePrice * (1 + (Math.random() - 0.5) * 0.05);
-                    const closePrice = openPrice + change;
-                    const highPrice = Math.max(openPrice, closePrice) * (1 + Math.abs(Math.random()) * 0.01);
-                    const lowPrice = Math.min(openPrice, closePrice) * (1 - Math.abs(Math.random()) * 0.01);
-
-                    opens.push(openPrice);
-                    highs.push(highPrice);
-                    lows.push(lowPrice);
-                    closes.push(closePrice);
-                    basePrice = closePrice;
+            let dates, opens, highs, lows, closes, volumes;
+            if (hasReal) {
+                dates = hist.dates;
+                opens = hist.open && hist.open.length === dates.length ? hist.open : hist.close;
+                highs = hist.high && hist.high.length === dates.length ? hist.high : hist.close;
+                lows = hist.low && hist.low.length === dates.length ? hist.low : hist.close;
+                closes = hist.close;
+                volumes = hist.volume && hist.volume.length === dates.length ? hist.volume : null;
+            } else {
+                const basePrice = (data.predictions && data.predictions.length)
+                    ? (data.predictions[data.predictions.length - 1].current_price || 100) : 100;
+                dates = []; opens = []; highs = []; lows = []; closes = []; volumes = null;
+                let px = basePrice;
+                for (let i = 0; i < 60; i++) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - (59 - i));
+                    dates.push(d.toISOString().slice(0, 10));
+                    const o = px;
+                    const c = o * (1 + (Math.random() - 0.48) * 0.04);
+                    opens.push(o); closes.push(c);
+                    highs.push(Math.max(o, c) * 1.008);
+                    lows.push(Math.min(o, c) * 0.992);
+                    px = c;
                 }
+            }
 
-                return { dates, opens, highs, lows, closes };
-            };
+            // Simple 20-period moving average overlay
+            const ma20 = closes.map((_, i) => {
+                if (i < 19) return null;
+                let s = 0;
+                for (let j = i - 19; j <= i; j++) s += closes[j];
+                return s / 20;
+            });
 
-            const mockData = createMockData();
-            const trace = {
+            const traces = [{
                 type: 'candlestick',
-                x: mockData.dates,
-                open: mockData.opens,
-                high: mockData.highs,
-                low: mockData.lows,
-                close: mockData.closes,
+                x: dates, open: opens, high: highs, low: lows, close: closes,
                 increasing: { line: { color: '#22c55e' }, fillcolor: '#22c55e' },
                 decreasing: { line: { color: '#ef4444' }, fillcolor: '#ef4444' },
                 name: symbol,
                 hoverinfo: 'x+y+open+high+low+close'
-            };
+            }, {
+                type: 'scatter', mode: 'lines', x: dates, y: ma20,
+                line: { color: '#f59e0b', width: 1.5 }, name: 'MA20',
+                hoverinfo: 'x+y'
+            }];
+            if (volumes && volumes.some(v => v !== null)) {
+                traces.push({
+                    type: 'bar', x: dates, y: volumes, name: 'Volume', yaxis: 'y2',
+                    marker: { color: 'rgba(148, 163, 184, 0.35)' }, hoverinfo: 'x+y'
+                });
+            }
 
+            const saved = _loadAnnotations(symbol);
             const layout = {
-                title: '\ Price Chart',
-                xaxis: { title: 'Date', rangeslider: { visible: false } },
-                yaxis: { title: Price (\) },
-                margin: { l: 60, r: 40, t: 50, b: 40 },
-                annotations: []
+                title: symbol + ' - ' + (hasReal ? 'Live Data' : 'Simulated Preview'),
+                xaxis: { title: 'Date', rangeslider: { visible: false }, type: 'category', nticks: 12 },
+                yaxis: { title: 'Price (' + currency + ')', domain: volumes ? [0.25, 1] : [0, 1] },
+                yaxis2: volumes ? { title: 'Volume', domain: [0, 0.18], showgrid: false } : undefined,
+                legend: { orientation: 'h', y: 1.08 },
+                margin: { l: 60, r: 40, t: 60, b: 40 },
+                shapes: saved.shapes || [],
+                annotations: saved.annotations || []
             };
 
-            Plotly.newPlot('priceChart', [trace], layout);
+            const config = {
+                displaylogo: false,
+                scrollZoom: true,
+                modeBarButtonsToAdd: ['drawline', 'drawopenpath', 'drawrect', 'drawcircle', 'eraseshape'],
+                modeBarButtonsToRemove: ['lasso2d', 'select2d']
+            };
+
+            Plotly.newPlot('priceChart', traces, layout, config).then(() => {
+                _attachChartEvents(document.getElementById('priceChart'), symbol, currency);
+            });
         }
 
 
