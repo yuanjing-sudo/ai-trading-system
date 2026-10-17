@@ -113,11 +113,16 @@ def main() -> int:
     bars_dir.mkdir(parents=True, exist_ok=True)
 
     today = dt.date.today().isoformat()
+    try:
+        from integrations.agents import LLM_STATUS
+        llm_status = dict(LLM_STATUS)
+    except Exception:
+        llm_status = {"backend": "none"}
     dashboard = {
         "generated_at": dt.datetime.now(dt.timezone.utc).isoformat().replace(
             "+00:00", "Z"),
         "universe": [],
-        "sources": {"yfinance": True},
+        "sources": {"yfinance": True, "llm": llm_status},
     }
 
     for ticker in args.tickers:

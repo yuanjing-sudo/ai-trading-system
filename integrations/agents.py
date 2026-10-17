@@ -4,12 +4,14 @@ A team of specialized agents - technical, fundamental, sentiment, risk and
 portfolio-manager - analyze a symbol and produce a structured verdict plus a
 markdown research note.
 
-The team runs fully offline:
+The team runs with three LLM tiers, in priority order:
 
-- When a local Ollama server is reachable (``http://localhost:11434``), the
-  agents use the configured LLM for reasoning and debate.
-- Otherwise every agent falls back to deterministic, indicator-driven logic
-  so the pipeline never fails and remains reproducible.
+- **GitHub Models** (cloud, free tier): used automatically inside GitHub
+  Actions when ``GITHUB_TOKEN`` / ``GITHUB_MODELS_TOKEN`` is set - lets the
+  cloud snapshot pipeline run a hosted model (default ``openai/gpt-4o-mini``,
+  override with ``GITHUB_MODELS_MODEL``).
+- **Local Ollama** (``http://localhost:11434``) for local runs.
+- Deterministic, indicator-driven fallback so the pipeline never fails.
 
 Integrated (registry ids): TradingAgents (10), AutoHedge (13),
 WallStreetAgents (14), FinGPT-style sentiment (11).
@@ -19,13 +21,15 @@ from __future__ import annotations
 
 import json
 import os
+import time
+import urllib.error
 import urllib.request
 
 import numpy as np
 import pandas as pd
 
 __all__ = [
-    "OllamaClient", "LLM_STATUS",
+    "OllamaClient", "GitHubModelsClient", "build_llm_client", "LLM_STATUS",
     "TechnicalAnalystAgent", "FundamentalsAgent", "SentimentAgent",
     "RiskManagerAgent", "PortfolioManagerAgent", "TradingAgentsOrchestrator",
     "analyze_symbol",
@@ -33,6 +37,15 @@ __all__ = [
 
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5-coder:7b")
+
+GITHUB_MODELS_URL = os.environ.get(
+    "GITHUB_MODELS_URL",
+    "https://models.github.ai/inference/chat/completions",
+)
+GITHUB_MODELS_MODEL = os.environ.get("GITHUB_MODELS_MODEL", "openai/gpt-4o-mini")
+GITHUB_MODELS_TOKEN = (
+    os.environ.get("GITHUB_MODELS_TOKEN") or os.environ.get("GITHUB_TOKEN") or ""
+)
 
 
 class OllamaClient:
@@ -78,8 +91,85 @@ class OllamaClient:
             return None
 
 
-_LLM = OllamaClient()
-LLM_STATUS = {"configured_model": _LLM.model, "host": _LLM.host}
+class GitHubModelsClient:
+    """GitHub Models (cloud) client - hosted LLMs with the Actions token.
+
+    OpenAI-compatible chat completions on ``https://models.github.ai``.
+    Defaults to ``openai/gpt-4o-mini``; override with ``GITHUB_MODELS_MODEL``
+    (e.g. ``meta/llama-3.3-70b-instruct``, ``openai/gpt-4o``).
+    """
+
+    backend = "github-models"
+
+    def __init__(self, token: str = GITHUB_MODELS_TOKEN,
+                 model: str = GITHUB_MODELS_MODEL, timeout: float = 45.0):
+        self.token = token or ""
+        self.model = model
+        self.host = "models.github.ai"
+        self.timeout = timeout
+
+    @property
+    def available(self) -> bool:
+        return bool(self.token)
+
+    def generate(self, prompt: str, system: str = "", temperature: float = 0.2) -> str | None:
+        if not self.available:
+            return None
+        payload = json.dumps({
+            "model": self.model,
+            "messages": [
+                {"role": "system",
+                 "content": system or "You are a concise financial markets analyst."},
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": temperature,
+            "max_tokens": 400,
+        }).encode("utf-8")
+        for attempt in (1, 2):
+            req = urllib.request.Request(
+                GITHUB_MODELS_URL, data=payload,
+                headers={
+                    "Authorization": f"Bearer {self.token}",
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                },
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                choices = data.get("choices") or []
+                if choices:
+                    content = (choices[0].get("message") or {}).get("content", "")
+                    return content.strip() or None
+                return None
+            except urllib.error.HTTPError as exc:
+                if exc.code == 429 and attempt == 1:
+                    time.sleep(25)
+                    continue
+                return None
+            except Exception:
+                return None
+        return None
+
+
+def build_llm_client():
+    """Pick the best available LLM backend.
+
+    GitHub Models wins when a token is present (used by the cloud snapshot
+    workflow), otherwise fall back to local Ollama.
+    """
+    if GITHUB_MODELS_TOKEN:
+        return GitHubModelsClient()
+    return OllamaClient()
+
+
+_LLM = build_llm_client()
+LLM_STATUS = {
+    "backend": getattr(_LLM, "backend", "ollama"),
+    "configured_model": _LLM.model,
+    "host": _LLM.host,
+}
 
 
 def _rsi(close: pd.Series, length: int = 14) -> float:

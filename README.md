@@ -23,7 +23,7 @@ Institutional-Grade Adaptive Market Prediction Engine with web interface.
 - Quant toolkit: 100+ indicators, 50+ factors, 25 strategies, risk metrics, backtester, walk-forward optimizer
 - pandas-ta / TA-Lib wrappers, CCXT crypto cross-exchange data, quantstats tear sheets
 - Live annotatable Plotly charts (drawing tools, persistent notes per symbol)
-- Multi-agent AI research team (technical / fundamental / sentiment / risk / PM) on local Ollama, with deterministic offline fallback
+- Multi-agent AI research team (technical / fundamental / sentiment / risk / PM): local Ollama at home, GitHub Models (hosted, default `openai/gpt-4o-mini`) in the cloud workflow, deterministic offline fallback everywhere
 - 100-repo integration catalog with optional adapters (`integrations/`, see `docs/INTEGRATIONS.md`)
 - GitHub cloud data pipeline: scheduled Actions snapshots stored in-repo and served via GitHub Pages
 

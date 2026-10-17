@@ -9,10 +9,15 @@ on:
         description: "Space-separated tickers (default: built-in universe)"
         required: false
         default: ""
+      model:
+        description: "GitHub Models model id (default: openai/gpt-4o-mini)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
   actions: write
+  models: read
 
 concurrency:
   group: cloud-snapshot
@@ -37,6 +42,9 @@ jobs:
           pip install yfinance pandas numpy requests
 
       - name: Generate cloud snapshot
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_MODELS_MODEL: ${{ github.event.inputs.model || vars.GITHUB_MODELS_MODEL || 'openai/gpt-4o-mini' }}
         run: |
           if [ -n "${{ github.event.inputs.tickers }}" ]; then
             python scripts/cloud_snapshot.py --tickers ${{ github.event.inputs.tickers }}
