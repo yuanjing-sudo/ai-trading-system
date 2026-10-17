@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-17T06:03:59.731352Z",
+  "generated_at": "2026-10-17T06:26:37.723658Z",
   "universe": [
     {
       "price": 343.46,
@@ -173,13 +173,13 @@
       }
     },
     {
-      "price": 81435.9922,
-      "ret_1d": -0.008588,
-      "ret_20d": -0.035192,
-      "rsi14": 46.27,
-      "ma20": 83558.1621,
-      "ma50": 81250.563,
-      "ann_vol": 0.3683,
+      "price": 81480.0,
+      "ret_1d": -0.008053,
+      "ret_20d": -0.034671,
+      "rsi14": 46.41,
+      "ma20": 83560.3625,
+      "ma50": 81251.4431,
+      "ann_vol": 0.3682,
       "high_52w": 86602.9141,
       "low_52w": 58558.8594,
       "ticker": "BTC-USD",
@@ -192,13 +192,13 @@
       }
     },
     {
-      "price": 2424.1299,
-      "ret_1d": -0.0067,
-      "ret_20d": -0.10058,
-      "rsi14": 38.86,
-      "ma20": 2586.2751,
-      "ma50": 2552.5326,
-      "ann_vol": 0.5232,
+      "price": 2428.47,
+      "ret_1d": -0.004921,
+      "ret_20d": -0.098969,
+      "rsi14": 39.16,
+      "ma20": 2586.4922,
+      "ma50": 2552.6194,
+      "ann_vol": 0.523,
       "high_52w": 2776.4683,
       "low_52w": 1564.8167,
       "ticker": "ETH-USD",
@@ -207,7 +207,7 @@
         "confidence": 0.657,
         "score": -0.357,
         "suggested_weight": 0.164,
-        "summary": "Team vote (technical_analyst: SELL; fundamentals_analyst: HOLD; sentiment_analyst: HOLD), aggregated score -0.36. Risk: vol=43.5%, maxDD=-66.6%, VaR95=-3.93%; vol 44% exceeds cap 40% -> scale 0.92; deep drawdown -67% -> halve exposure"
+        "summary": "Team vote (technical_analyst: SELL; fundamentals_analyst: HOLD; sentiment_analyst: HOLD), aggregated score -0.36. Risk: vol=43.5%, maxDD=-66.6%, VaR95=-3.93%; vol 43% exceeds cap 40% -> scale 0.92; deep drawdown -67% -> halve exposure"
       }
     },
     {
@@ -276,7 +276,7 @@
       "ma50": 346.6895,
       "ann_vol": 0.17,
       "high_52w": 363.3672,
-      "low_52w": 278.7472,
+      "low_52w": 278.7473,
       "ticker": "JPM",
       "agents": {
         "decision": "HOLD",
@@ -288,6 +288,11 @@
     }
   ],
   "sources": {
-    "yfinance": true
+    "yfinance": true,
+    "llm": {
+      "backend": "github-models",
+      "configured_model": "openai/gpt-4o-mini",
+      "host": "models.github.ai"
+    }
   }
 }
