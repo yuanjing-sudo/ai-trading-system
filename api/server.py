@@ -3,8 +3,9 @@ import os
 import sys
 import json
 import asyncio
-from typing import Dict, List, Optional, Set
-from datetime import datetime
+from contextlib import asynccontextmanager
+from typing import Dict, List, Optional, Set, Tuple
+from datetime import datetime, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -30,7 +31,18 @@ from utils.logger import setup_logger
 
 logger = setup_logger("API", "INFO")
 
-app = FastAPI(title="AI Trading System", version="3.0.0")
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    _load_universes()
+    try:
+        await _fetch_currency_rates()
+    except Exception as e:
+        logger.warning(f"Currency rate init failed: {e}")
+    yield
+
+
+app = FastAPI(title="AI Trading System", version="3.4.0", lifespan=_lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -86,6 +98,20 @@ def _resolve_symbol(symbol: str) -> str:
         return CRYPTO_ALIASES[upper]
     return symbol
 
+
+def _live_window(days: int = 1095) -> Tuple[str, str]:
+    """Rolling window ending tomorrow (yfinance end is exclusive)."""
+    today = datetime.now(timezone.utc).date()
+    start = (today - timedelta(days=days)).isoformat()
+    end = (today + timedelta(days=1)).isoformat()
+    return start, end
+
+
+def _resolve_window(start: Optional[str] = None, end: Optional[str] = None,
+                    days: int = 1095) -> Tuple[str, str]:
+    live_start, live_end = _live_window(days)
+    return start or live_start, end or live_end
+
 CURRENCY_RATES: Dict[str, float] = {"USD": 1.0}
 CURRENCY_SYMBOLS = {
     "USD": "$", "EUR": "€", "GBP": "£", "JPY": "¥", "CNY": "¥",
@@ -94,13 +120,27 @@ CURRENCY_SYMBOLS = {
 }
 
 
+STOCK_UNIVERSE_DEFAULT = {
+    "AAPL", "MSFT", "GOOGL", "GOOG", "AMZN", "NVDA", "META", "TSLA", "BRK-B",
+    "JPM", "V", "UNH", "XOM", "JNJ", "WMT", "PG", "MA", "AVGO", "HD", "CVX",
+    "MRK", "LLY", "ABBV", "PEP", "KO", "COST", "ADBE", "CRM", "MCD", "CSCO",
+    "ACN", "ABT", "LIN", "TMO", "DHR", "NKE", "TXN", "AMD", "PM", "UNP",
+    "RTX", "LOW", "HON", "QCOM", "COP", "AMGN", "SBUX", "CAT", "BA", "GE",
+    "IBM", "INTU", "AMAT", "BKNG", "MU", "INTC", "PLTR", "UBER", "PYPL", "NFLX",
+    "DIS", "CMCSA", "VZ", "T", "PFE", "MRVL", "NOW", "PANW", "SNOW", "SHOP",
+    "SQ", "COIN", "SOFI", "RIVN", "LCID", "F", "GM", "RCL", "CCL", "DAL",
+    "UAL", "AAL", "LUV", "MAR", "HLT", "WYNN", "MGM", "LVS", "DKNG", "CVNA",
+    "ROKU", "SPOT", "PINS", "SNAP", "TTD", "CRWD", "ZS", "NET", "DDOG", "MDB",
+    "TEAM", "WDAY", "ADSK", "ZM", "DOCU", "TWLO", "OKTA", "FIS", "FISV", "GPN",
+    "AXP", "GS", "MS", "BAC", "WFC", "C", "SCHW", "BLK", "SPGI", "MMC",
+    "AON", "PGR", "ALL", "TRV", "MET", "PRU", "AIG", "USB", "PNC", "TFC",
+    "COF", "DFS", "SYF", "BK", "STT", "NTRS", "RF", "KEY", "CFG", "HBAN",
+}
+
+
 def _load_universes():
-    global CRYPTO_UNIVERSE, ETF_UNIVERSE, FOREX_UNIVERSE, COMMODITY_UNIVERSE
-    try:
-        import yfinance as yf
-        tickers = yf.Tickers('')
-    except Exception:
-        pass
+    global STOCK_UNIVERSE, CRYPTO_UNIVERSE, ETF_UNIVERSE, FOREX_UNIVERSE, COMMODITY_UNIVERSE
+    STOCK_UNIVERSE = set(STOCK_UNIVERSE_DEFAULT)
     CRYPTO_UNIVERSE = {
         "BTC-USD", "ETH-USD", "BNB-USD", "SOL-USD", "XRP-USD", "ADA-USD",
         "DOGE-USD", "DOT-USD", "MATIC-USD", "AVAX-USD", "LINK-USD", "UNI-USD",
@@ -230,8 +270,7 @@ def _get_crypto_bridge(symbols: List[str], start: str, end: str) -> CryptoPredic
 
 async def _fetch_crypto_indicators() -> Dict:
     try:
-        end_date = "2026-10-01"
-        start_date = "2024-10-01"
+        start_date, end_date = _live_window(730)
         btc = _fetcher.fetch(["BTC-USD"], start_date, end_date)
         total = _fetcher.fetch(["BTC-USD", "ETH-USD"], start_date, end_date)
         btc_df = btc.get("BTC-USD", pd.DataFrame())
@@ -286,8 +325,7 @@ async def _fetch_tokenomics(symbol: str) -> Dict:
 async def _fetch_forex_indicators(symbol: str) -> Dict:
     try:
         import yfinance as yf
-        end_date = "2026-10-01"
-        start_date = "2024-10-01"
+        start_date, end_date = _live_window(730)
         pair = symbol.replace("=X", "-USD") if symbol.endswith("=X") else symbol
         df = _fetcher.fetch([pair], start_date, end_date)
         d = list(df.values())[0] if df else pd.DataFrame()
@@ -318,8 +356,7 @@ async def _fetch_forex_indicators(symbol: str) -> Dict:
 async def _fetch_commodity_indicators(symbol: str) -> Dict:
     try:
         import yfinance as yf
-        end_date = "2026-10-01"
-        start_date = "2024-10-01"
+        start_date, end_date = _live_window(730)
         df = _fetcher.fetch([symbol], start_date, end_date)
         d = list(df.values())[0] if df else pd.DataFrame()
         if d.empty:
@@ -349,8 +386,7 @@ async def _fetch_commodity_indicators(symbol: str) -> Dict:
 async def _fetch_etf_indicators(symbol: str) -> Dict:
     try:
         import yfinance as yf
-        end_date = "2026-10-01"
-        start_date = "2024-10-01"
+        start_date, end_date = _live_window(730)
         df = _fetcher.fetch([symbol], start_date, end_date)
         d = list(df.values())[0] if df else pd.DataFrame()
         if d.empty:
@@ -402,7 +438,8 @@ async def _fetch_stock_indicators(symbol: str) -> Dict:
 async def _fetch_currency_rates() -> Dict[str, float]:
     try:
         pairs = ["EURUSD=X", "GBPUSD=X", "USDJPY=X", "USDCHF=X", "USDCAD=X", "AUDUSD=X", "USDCNY=X", "USDINR=X", "USDKRW=X", "USDSGD=X", "USDMXN=X", "USDBRL=X"]
-        data = _fetcher.fetch(pairs, "2024-12-01", "2024-12-31")
+        start_date, end_date = _live_window(30)
+        data = _fetcher.fetch(pairs, start_date, end_date)
         for pair, df in data.items():
             if not df.empty:
                 rate = float(df["close"].iloc[-1])
@@ -416,12 +453,6 @@ async def _fetch_currency_rates() -> Dict[str, float]:
     except Exception:
         pass
     return CURRENCY_RATES
-
-
-@app.on_event("startup")
-async def startup():
-    _load_universes()
-    await _fetch_currency_rates()
 
 
 @app.get("/")
@@ -449,8 +480,8 @@ async def search_symbols(q: str = Query(..., min_length=1, max_length=50)):
 
     try:
         try:
-            tickers = yf.search(q)
-            for t in tickers[:20]:
+            search = yf.Search(q, max_results=20)
+            for t in (search.quotes or [])[:20]:
                 sym = t.get("symbol", "")
                 if sym and sym not in seen:
                     seen.add(sym)
@@ -468,7 +499,8 @@ async def search_symbols(q: str = Query(..., min_length=1, max_length=50)):
         except Exception:
             pass
 
-        for universe, cls in [(CRYPTO_UNIVERSE, "crypto"), (ETF_UNIVERSE, "etf"),
+        for universe, cls in [(STOCK_UNIVERSE, "stocks"), (CRYPTO_UNIVERSE, "crypto"),
+                               (ETF_UNIVERSE, "etf"),
                                (FOREX_UNIVERSE, "forex"), (COMMODITY_UNIVERSE, "commodities")]:
             for sym in sorted(universe):
                 if q_upper in sym.upper() and sym not in seen:
@@ -529,10 +561,11 @@ async def analyze_symbol(
     symbol: str,
     asset_class: str = "stocks",
     currency: str = "USD",
-    start: str = "2022-01-01",
-    end: str = "2024-12-31",
+    start: Optional[str] = None,
+    end: Optional[str] = None,
 ):
     symbol = _resolve_symbol(symbol)
+    start, end = _resolve_window(start, end)
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
         _executor, _analyze_sync, symbol, asset_class, currency, start, end
@@ -599,6 +632,10 @@ def _analyze_sync(symbol: str, asset_class: str, currency: str, start: str, end:
             elif asset_class == "stocks":
                 asset_specific = _run_async(_fetch_stock_indicators(symbol))
 
+        if "date" not in preds.columns and "timestamp" in preds.columns:
+            preds["date"] = preds["timestamp"]
+        if "horizon" not in preds.columns and "horizon_hours" in preds.columns:
+            preds["horizon"] = preds["horizon_hours"]
         if "date" in preds.columns:
             preds["date"] = preds["date"].astype(str)
         if "timestamp" in preds.columns:
@@ -652,8 +689,8 @@ def _analyze_sync(symbol: str, asset_class: str, currency: str, start: str, end:
 async def analyze_batch(
     symbols: str = Query(...),
     asset_class: str = "stocks",
-    start: str = "2022-01-01",
-    end: str = "2024-12-31",
+    start: Optional[str] = None,
+    end: Optional[str] = None,
 ):
     sym_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
     if not sym_list:
@@ -661,6 +698,7 @@ async def analyze_batch(
     if len(sym_list) > 15:
         raise HTTPException(status_code=400, detail="Maximum 15 symbols per batch")
 
+    start, end = _resolve_window(start, end)
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
         _executor, _analyze_batch_sync, sym_list, asset_class, start, end
@@ -692,14 +730,15 @@ def _analyze_batch_sync(sym_list: List[str], asset_class: str, start: str, end: 
 
 @app.get("/api/market_state")
 async def market_state():
-    benchmark = _fetcher.fetch_benchmark("SPY", "2023-01-01", "2024-12-31")
+    start, end = _live_window(730)
+    benchmark = _fetcher.fetch_benchmark("SPY", start, end)
     from predictor.engine import RegimeDetector
     detector = RegimeDetector()
     regime = detector.classify_single(benchmark["close"])
     return {
         "regime": REGIME_NAMES.get(regime, "unknown"),
         "risk_multiplier": RegimeDetector.regime_risk_multiplier(regime),
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "currencies": CURRENCY_RATES,
     }
 
@@ -731,11 +770,12 @@ async def get_universe(asset_class: str):
 async def advanced_analysis(
     symbol: str,
     asset_class: str = "stocks",
-    start: str = "2022-01-01",
-    end: str = "2024-12-31",
+    start: Optional[str] = None,
+    end: Optional[str] = None,
 ):
     from advanced.analytics import AdvancedAnalytics
     symbol = _resolve_symbol(symbol)
+    start, end = _resolve_window(start, end)
     try:
         price_data = _fetcher.fetch([symbol], start, end)
         if not price_data:
@@ -787,12 +827,13 @@ async def advanced_analysis(
 @app.get("/api/correlation")
 async def correlation_matrix(
     symbols: str = Query(...),
-    start: str = "2023-01-01",
-    end: str = "2024-12-31",
+    start: Optional[str] = None,
+    end: Optional[str] = None,
 ):
     sym_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
     if not sym_list:
         raise HTTPException(status_code=400, detail="No symbols provided")
+    start, end = _resolve_window(start, end, days=730)
     try:
         price_data = _fetcher.fetch(sym_list, start, end)
         from advanced.analytics import AdvancedAnalytics
@@ -811,11 +852,12 @@ async def correlation_matrix(
 async def algorithm_analysis(
     symbol: str,
     asset_class: str = "stocks",
-    start: str = "2022-01-01",
-    end: str = "2024-12-31",
+    start: Optional[str] = None,
+    end: Optional[str] = None,
 ):
     from assistant import AlgorithmAnalyzer
     symbol = _resolve_symbol(symbol)
+    start, end = _resolve_window(start, end)
     try:
         price_data = _fetcher.fetch([symbol], start, end)
         if not price_data:
@@ -876,11 +918,12 @@ async def ai_assistant(request: dict):
 async def improved_analysis(
     symbol: str,
     asset_class: str = "stocks",
-    start: str = "2022-01-01",
-    end: str = "2024-12-31",
+    start: Optional[str] = None,
+    end: Optional[str] = None,
     label_type: str = "direction",
 ):
     symbol = _resolve_symbol(symbol)
+    start, end = _resolve_window(start, end)
     try:
         price_data = _fetcher.fetch([symbol], start, end)
         if not price_data:
@@ -942,9 +985,10 @@ async def integrations_repos(category: str | None = None, status: str | None = N
 
 
 @app.get("/api/agents/{symbol}")
-async def agent_analysis(symbol: str, start: str = "2022-01-01",
-                         end: str = "2024-12-31"):
+async def agent_analysis(symbol: str, start: Optional[str] = None,
+                         end: Optional[str] = None):
     symbol = _resolve_symbol(symbol)
+    start, end = _resolve_window(start, end)
     try:
         price_data = _fetcher.fetch([symbol], start, end)
         df = price_data.get(symbol)
@@ -961,7 +1005,7 @@ async def agent_analysis(symbol: str, start: str = "2022-01-01",
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "version": "3.3.0"}
+    return {"status": "ok", "version": "3.4.0"}
 
 
 def start():

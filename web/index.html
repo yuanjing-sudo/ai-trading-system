@@ -968,7 +968,7 @@
                         <tbody>
                             ${data.predictions.map(p => `
                                 <tr>
-                                    <td>${p.horizon}d</td>
+                                    <td>${p.horizon_hours ? p.horizon_hours + 'h' : p.horizon + 'd'}</td>
                                     <td style="color:${p.probability_up > 0.5 ? '#22c55e' : '#ef4444'};">${(p.probability_up * 100).toFixed(1)}%</td>
                                     <td>${(p.expected_return * 100).toFixed(2)}%</td>
                                     <td>${(p.confidence * 100).toFixed(0)}%</td>
@@ -1028,7 +1028,7 @@
                                     <tbody>
                                         ${pred.predictions.map(p => `
                                             <tr>
-                                                <td>${p.horizon}d</td>
+                                                <td>${p.horizon_hours ? p.horizon_hours + 'h' : p.horizon + 'd'}</td>
                                                 <td style="color:${p.probability_up > 0.5 ? '#22c55e' : '#ef4444'}">${(p.probability_up * 100).toFixed(1)}%</td>
                                                 <td>${(p.expected_return * 100).toFixed(2)}%</td>
                                                 <td>${(p.confidence * 100).toFixed(0)}%</td>

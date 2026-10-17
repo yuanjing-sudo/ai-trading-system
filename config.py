@@ -2,7 +2,13 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 from enum import Enum
 import os
+from datetime import date, timedelta
 from pathlib import Path
+
+
+def _live_end_date() -> str:
+    """Tomorrow (yfinance end is exclusive) so today's bar is included."""
+    return (date.today() + timedelta(days=1)).isoformat()
 
 
 class AssetClass(Enum):
@@ -38,7 +44,7 @@ class DataConfig:
     ])
     benchmark: str = "SPY"
     start_date: str = "2018-01-01"
-    end_date: str = "2024-12-31"
+    end_date: str = field(default_factory=_live_end_date)
     interval: str = "1d"
     lookback_days: int = 504
     cache_dir: str = "./cache"

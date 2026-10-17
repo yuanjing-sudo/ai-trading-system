@@ -26,7 +26,7 @@ class MarketDataFetcher:
         h = hashlib.md5(key.encode()).hexdigest()[:16]
         return self.cache_dir / f"{key}_{h}.pkl"
 
-    def _cache_valid(self, path: Path, max_age_hours: int = 12) -> bool:
+    def _cache_valid(self, path: Path, max_age_hours: int = 4) -> bool:
         if not path.exists():
             return False
         age = time.time() - path.stat().st_mtime
