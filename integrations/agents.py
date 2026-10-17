@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -144,11 +145,19 @@ class GitHubModelsClient:
                     return content.strip() or None
                 return None
             except urllib.error.HTTPError as exc:
+                if os.environ.get("GITHUB_MODELS_DEBUG"):
+                    try:
+                        body = exc.read().decode("utf-8", "replace")[:300]
+                    except Exception:
+                        body = ""
+                    sys.stderr.write(f"[github-models] HTTP {exc.code}: {body}\n")
                 if exc.code == 429 and attempt == 1:
                     time.sleep(25)
                     continue
                 return None
-            except Exception:
+            except Exception as exc:
+                if os.environ.get("GITHUB_MODELS_DEBUG"):
+                    sys.stderr.write(f"[github-models] {type(exc).__name__}: {exc}\n")
                 return None
         return None
 

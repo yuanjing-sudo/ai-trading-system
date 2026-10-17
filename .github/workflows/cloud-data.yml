@@ -45,6 +45,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_MODELS_MODEL: ${{ github.event.inputs.model || vars.GITHUB_MODELS_MODEL || 'openai/gpt-4o-mini' }}
+          GITHUB_MODELS_DEBUG: "1"
         run: |
           if [ -n "${{ github.event.inputs.tickers }}" ]; then
             python scripts/cloud_snapshot.py --tickers ${{ github.event.inputs.tickers }}

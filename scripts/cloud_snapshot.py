@@ -97,6 +97,7 @@ def run_agents(ticker: str, df: pd.DataFrame) -> dict:
             "score": round(out["decision"]["score"], 3),
             "suggested_weight": round(out["decision"]["suggested_weight"], 3),
             "summary": out["decision"]["summary"],
+            "llm": bool(out.get("llm_available")),
         }
     except Exception as exc:
         return {"decision": "HOLD", "confidence": 0.0, "error": str(exc)}
@@ -135,7 +136,8 @@ def main() -> int:
         summary["agents"] = run_agents(ticker, df)
         dashboard["universe"].append(summary)
         export_json_snapshot(compact_bars(df), bars_dir / f"{ticker.replace('/', '_')}.json")
-        print(f"[ok] {ticker}: {summary['price']} ({summary['agents']['decision']})")
+        print(f"[ok] {ticker}: {summary['price']} ({summary['agents']['decision']}, "
+              f"llm={summary['agents'].get('llm')})")
 
     export_json_snapshot(dashboard, docs_data / "dashboard.json")
     export_json_snapshot(dashboard, ROOT / "data" / "snapshots" / f"{today}.json")
