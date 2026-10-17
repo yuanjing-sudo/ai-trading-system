@@ -1,7 +1,10 @@
 __pycache__/
 *.pyc
 .cache/
+cache/
 output/
 logs/
 *.log
 .env
+test_report.html
+reports/*.html

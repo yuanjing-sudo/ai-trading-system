@@ -26,6 +26,7 @@ from quant.factors import (
     composite_value_factor, composite_quality_factor,
     composite_momentum_factor, composite_volatility_factor,
     composite_liquidity_factor, composite_factor,
+    rank_cross_sectional,
 )
 
 __all__ = [
@@ -219,6 +220,35 @@ def mean_reversion_strategy(
     signal[z < -z_threshold] = 1.0   # oversold -> long
     signal[z > z_threshold] = -1.0   # overbought -> short
     return signal
+
+
+def pairs_trading_strategy(
+    prices: pd.DataFrame, lookback: int = 60, entry_z: float = 1.5,
+    exit_z: float = 0.5, pairs: list[tuple[str, str]] | None = None,
+) -> pd.DataFrame:
+    """Pairs trading on log-price spreads with entry/exit hysteresis.
+
+    Without explicit ``pairs``, each asset is traded against the equal-weight
+    basket of the universe as its hedge. With ``pairs``, the spread signal is
+    reported on the first leg only (negate it for the second leg).
+    """
+    log_prices = np.log(prices.where(prices > 0))
+    if pairs is None:
+        spread = log_prices.sub(log_prices.mean(axis=1), axis=0)
+    else:
+        spread = pd.DataFrame(index=prices.index)
+        for a, b in pairs:
+            if a in log_prices.columns and b in log_prices.columns:
+                spread[a] = log_prices[a] - log_prices[b]
+    mean_ = spread.rolling(lookback).mean()
+    std_ = spread.rolling(lookback).std(ddof=1)
+    z = _safe_div(spread - mean_, std_, fill=0.0)
+    raw = pd.DataFrame(np.nan, index=prices.index, columns=spread.columns)
+    raw[z < -entry_z] = 1.0
+    raw[z > entry_z] = -1.0
+    raw[z.abs() < exit_z] = 0.0
+    signal = raw.ffill().fillna(0.0)
+    return signal.clip(-1.0, 1.0)
 
 
 def rsi_mean_reversion_strategy(

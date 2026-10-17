@@ -147,13 +147,19 @@ class BacktestEngine:
             volumes = volumes.reindex(prices.index).ffill()
 
         # Determine rebalance dates
-        rebalance_dates = prices.index[prices.index.to_series().diff() > pd.Timedelta(days=0)]
-        if rebalance_freq != "D":
-            rebalance_dates = prices.index[prices.index.to_series().diff(
-                pd.Timedelta(days=1)
-            ) >= pd.Timedelta(rebalance_freq)]
-        else:
+        if rebalance_freq in ("D", None):
             rebalance_dates = prices.index
+        else:
+            freq = {"M": "ME", "Q": "QE", "Y": "YE", "A": "YE"}.get(
+                rebalance_freq, rebalance_freq
+            )
+            rebalance_dates = (
+                prices.index.to_series()
+                .groupby(pd.Grouper(freq=freq))
+                .last()
+                .dropna()
+                .index
+            )
 
         n_assets = prices.shape[1]
         capital = self.initial_capital
@@ -165,7 +171,7 @@ class BacktestEngine:
         trades_history = []
         costs_history = []
 
-        prev_price = None
+        prev_equity = capital
         prev_signal = None
 
         for i, date in enumerate(prices.index):
@@ -174,7 +180,7 @@ class BacktestEngine:
 
             # Mark-to-market
             portfolio_value = cash + float(positions @ price)
-            if i > 0 and prev_price is not None:
+            if i > 0 and prev_equity > 0:
                 period_return = (portfolio_value - prev_equity) / prev_equity
             else:
                 period_return = 0.0
@@ -192,7 +198,9 @@ class BacktestEngine:
 
             # Rebalance decision
             is_rebalance = date in rebalance_dates
-            if is_rebalance and not np.allclose(signal, prev_signal if prev_signal is not None else signal, atol=1e-6):
+            if is_rebalance and (
+                prev_signal is None or not np.allclose(signal, prev_signal, atol=1e-6)
+            ):
                 target_weights = signal.copy()
                 # Apply position limits
                 target_weights = apply_position_limits(
@@ -220,8 +228,9 @@ class BacktestEngine:
                 short_notional = np.abs(np.minimum(target_value, 0.0))
                 borrow_cost = short_notional * (self.borrow_rate_bps / 1e4 / 252.0)
 
-                # Apply costs from cash
-                cash -= float(total_cost.sum() + borrow_cost)
+                # Apply trade notional and costs from cash
+                trade_notional_signed = float((trade_shares * price).sum())
+                cash -= trade_notional_signed + float(total_cost.sum()) + float(borrow_cost.sum())
 
                 # Execute trades
                 positions = target_shares
@@ -232,8 +241,6 @@ class BacktestEngine:
                     pd.Series(total_cost, index=prices.columns, name=date)
                 )
                 prev_signal = signal.copy()
-
-            prev_price = price.copy()
 
         # Build result objects
         equity = pd.Series(equity_history, index=prices.index)
@@ -266,8 +273,10 @@ def run_backtest(
     **kwargs,
 ) -> BacktestResult:
     """Convenience function to run a backtest."""
+    run_keys = {"volumes", "rebalance_freq"}
+    run_kwargs = {k: kwargs.pop(k) for k in list(kwargs) if k in run_keys}
     engine = BacktestEngine(**kwargs)
-    return engine.run(prices, signals)
+    return engine.run(prices, signals, **run_kwargs)
 
 
 # ---------------------------------------------------------------------------

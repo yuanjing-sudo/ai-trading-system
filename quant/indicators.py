@@ -50,6 +50,10 @@ __all__ = [
 def _as_series(x) -> pd.Series:
     if isinstance(x, pd.Series):
         return x
+    if isinstance(x, pd.DataFrame):
+        if x.shape[1] == 1:
+            return x.iloc[:, 0]
+        raise ValueError("Expected a Series, 1-D array, or single-column DataFrame")
     return pd.Series(x, dtype="float64")
 
 
