@@ -6,10 +6,11 @@ markdown research note.
 
 The team runs with three LLM tiers, in priority order:
 
-- **GitHub Models** (cloud, free tier): used automatically inside GitHub
-  Actions when ``GITHUB_TOKEN`` / ``GITHUB_MODELS_TOKEN`` is set - lets the
-  cloud snapshot pipeline run a hosted model (default ``openai/gpt-4o-mini``,
-  override with ``GITHUB_MODELS_MODEL``).
+- **Groq (cloud, free tier)**: used automatically when ``LLM_API_KEY`` /
+  ``GROQ_API_KEY`` is set - the GitHub Actions snapshot workflow passes the
+  ``GROQ_API_KEY`` repo secret here. Default model ``llama-3.3-70b-versatile``
+  (override with ``LLM_MODEL``). Any OpenAI-compatible endpoint works via
+  ``LLM_API_URL``.
 - **Local Ollama** (``http://localhost:11434``) for local runs.
 - Deterministic, indicator-driven fallback so the pipeline never fails.
 
@@ -24,13 +25,14 @@ import os
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 import numpy as np
 import pandas as pd
 
 __all__ = [
-    "OllamaClient", "GitHubModelsClient", "build_llm_client", "LLM_STATUS",
+    "OllamaClient", "OpenAICompatClient", "build_llm_client", "LLM_STATUS",
     "TechnicalAnalystAgent", "FundamentalsAgent", "SentimentAgent",
     "RiskManagerAgent", "PortfolioManagerAgent", "TradingAgentsOrchestrator",
     "analyze_symbol",
@@ -39,18 +41,9 @@ __all__ = [
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5-coder:7b")
 
-GITHUB_MODELS_URL = os.environ.get(
-    "GITHUB_MODELS_URL",
-    "https://models.github.ai/inference/chat/completions",
-)
-GITHUB_MODELS_URL_FALLBACK = os.environ.get(
-    "GITHUB_MODELS_URL_FALLBACK",
-    "https://models.inference.ai.azure.com/chat/completions",
-)
-GITHUB_MODELS_MODEL = os.environ.get("GITHUB_MODELS_MODEL", "openai/gpt-4o-mini")
-GITHUB_MODELS_TOKEN = (
-    os.environ.get("GITHUB_MODELS_TOKEN") or os.environ.get("GITHUB_TOKEN") or ""
-)
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+LLM_MODEL_DEFAULT = "llama-3.3-70b-versatile"
+LLM_DEBUG = bool(os.environ.get("LLM_DEBUG"))
 
 
 class OllamaClient:
@@ -96,23 +89,27 @@ class OllamaClient:
             return None
 
 
-class GitHubModelsClient:
-    """GitHub Models (cloud) client - hosted LLMs with the Actions token.
+class OpenAICompatClient:
+    """OpenAI-compatible chat completions client (Groq by default).
 
-    OpenAI-compatible chat completions on ``https://models.github.ai``.
-    Defaults to ``openai/gpt-4o-mini``; override with ``GITHUB_MODELS_MODEL``
-    (e.g. ``meta/llama-3.3-70b-instruct``, ``openai/gpt-4o``).
+    Uses any provider exposing ``/chat/completions``; defaults to Groq's free
+    tier (``https://api.groq.com/openai/v1``) with
+    ``llama-3.3-70b-versatile``. Configure via ``LLM_API_KEY`` (or
+    ``GROQ_API_KEY``), ``LLM_API_URL`` and ``LLM_MODEL``.
     """
 
-    backend = "github-models"
-
-    def __init__(self, token: str = GITHUB_MODELS_TOKEN,
-                 model: str = GITHUB_MODELS_MODEL, timeout: float = 45.0):
-        self.token = token or ""
+    def __init__(self, api_key: str, model: str = LLM_MODEL_DEFAULT,
+                 url: str = GROQ_API_URL, timeout: float = 45.0):
+        self.token = api_key or ""
         self.model = model
-        self.host = "models.github.ai"
+        self.url = url
+        self.backend = "groq" if "groq" in url else "openai-compat"
+        try:
+            self.host = urllib.parse.urlsplit(url).netloc
+        except Exception:
+            self.host = url
         self.timeout = timeout
-        self.debug = bool(os.environ.get("GITHUB_MODELS_DEBUG"))
+        self.debug = LLM_DEBUG
 
     @property
     def available(self) -> bool:
@@ -120,7 +117,7 @@ class GitHubModelsClient:
 
     def _log(self, message: str) -> None:
         if self.debug:
-            sys.stderr.write(f"[github-models] {message}\n")
+            sys.stderr.write(f"[{self.backend}] {message}\n")
 
     def _attempt(self, url: str, payload: bytes) -> tuple[str | None, bool]:
         """Returns (content, hit_rate_limit)."""
@@ -130,7 +127,6 @@ class GitHubModelsClient:
                 "Authorization": f"Bearer {self.token}",
                 "Content-Type": "application/json",
                 "Accept": "application/json",
-                "X-GitHub-Api-Version": "2022-11-28",
                 "User-Agent": "ai-trading-system/1.0",
             },
         )
@@ -176,29 +172,31 @@ class GitHubModelsClient:
             "temperature": temperature,
             "max_tokens": 400,
         }).encode("utf-8")
-        urls = [GITHUB_MODELS_URL]
-        if GITHUB_MODELS_URL_FALLBACK and GITHUB_MODELS_URL_FALLBACK not in urls:
-            urls.append(GITHUB_MODELS_URL_FALLBACK)
         for attempt in (1, 2):
-            rate_limited = False
-            for url in urls:
-                content, hit_limit = self._attempt(url, payload)
-                if content:
-                    return content
-                rate_limited = rate_limited or hit_limit
+            content, rate_limited = self._attempt(self.url, payload)
+            if content:
+                return content
             if rate_limited and attempt == 1:
                 time.sleep(20)
+            else:
+                break
         return None
 
 
 def build_llm_client():
     """Pick the best available LLM backend.
 
-    GitHub Models wins when a token is present (used by the cloud snapshot
-    workflow), otherwise fall back to local Ollama.
+    A hosted OpenAI-compatible API (Groq) wins when a key is present - this is
+    what the cloud snapshot workflow uses via the ``GROQ_API_KEY`` secret.
+    Otherwise fall back to local Ollama.
     """
-    if GITHUB_MODELS_TOKEN:
-        return GitHubModelsClient()
+    api_key = os.environ.get("LLM_API_KEY") or os.environ.get("GROQ_API_KEY") or ""
+    if api_key:
+        return OpenAICompatClient(
+            api_key=api_key,
+            model=os.environ.get("LLM_MODEL", LLM_MODEL_DEFAULT),
+            url=os.environ.get("LLM_API_URL", GROQ_API_URL),
+        )
     return OllamaClient()
 
 

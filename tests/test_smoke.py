@@ -65,6 +65,20 @@ def test_integrations_registry_has_100_repos():
         assert repo.category
 
 
+def test_build_llm_client_prefers_hosted_with_key(monkeypatch):
+    from integrations import agents as agents_mod
+
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    client = agents_mod.build_llm_client()
+    assert getattr(client, "backend", "ollama") == "ollama"
+
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    client = agents_mod.build_llm_client()
+    assert client.backend == "groq"
+    assert client.available
+
+
 def test_integrations_agents_offline_fallback(monkeypatch):
     import integrations.agents as agents_mod
 

@@ -10,14 +10,13 @@ on:
         required: false
         default: ""
       model:
-        description: "GitHub Models model id (default: openai/gpt-4o-mini)"
+        description: "LLM model id (default: llama-3.3-70b-versatile on Groq)"
         required: false
         default: ""
 
 permissions:
   contents: write
   actions: write
-  models: read
 
 concurrency:
   group: cloud-snapshot
@@ -41,22 +40,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install yfinance pandas numpy requests
 
-      - name: Probe GitHub Models endpoint
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          curl -sS -i -X POST https://models.github.ai/inference/chat/completions \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            -H "Content-Type: application/json" \
-            -H "Accept: application/json" \
-            -d '{"model":"openai/gpt-4o-mini","messages":[{"role":"user","content":"Say OK"}],"max_tokens":5}' | head -c 700
-          echo
-
       - name: Generate cloud snapshot
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-          GITHUB_MODELS_MODEL: ${{ github.event.inputs.model || vars.GITHUB_MODELS_MODEL || 'openai/gpt-4o-mini' }}
-          GITHUB_MODELS_DEBUG: "1"
+          LLM_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          LLM_MODEL: ${{ github.event.inputs.model || vars.LLM_MODEL || 'llama-3.3-70b-versatile' }}
+          LLM_DEBUG: "1"
         run: |
           if [ -n "${{ github.event.inputs.tickers }}" ]; then
             python scripts/cloud_snapshot.py --tickers ${{ github.event.inputs.tickers }}
