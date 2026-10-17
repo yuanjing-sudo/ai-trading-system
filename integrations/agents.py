@@ -8,7 +8,7 @@ The team runs with three LLM tiers, in priority order:
 
 - **Groq (cloud, free tier)**: used automatically when ``LLM_API_KEY`` /
   ``GROQ_API_KEY`` is set - the GitHub Actions snapshot workflow passes the
-  ``GROQ_API_KEY`` repo secret here. Default model ``llama-3.3-70b-versatile``
+  ``GROQ_API_KEY`` repo secret here. Default model ``openai/gpt-oss-120b``
   (override with ``LLM_MODEL``). Any OpenAI-compatible endpoint works via
   ``LLM_API_URL``.
 - **Local Ollama** (``http://localhost:11434``) for local runs.
@@ -42,7 +42,7 @@ OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5-coder:7b")
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-LLM_MODEL_DEFAULT = "llama-3.3-70b-versatile"
+LLM_MODEL_DEFAULT = "openai/gpt-oss-120b"
 LLM_DEBUG = bool(os.environ.get("LLM_DEBUG"))
 
 
@@ -94,7 +94,7 @@ class OpenAICompatClient:
 
     Uses any provider exposing ``/chat/completions``; defaults to Groq's free
     tier (``https://api.groq.com/openai/v1``) with
-    ``llama-3.3-70b-versatile``. Configure via ``LLM_API_KEY`` (or
+    ``openai/gpt-oss-120b``. Configure via ``LLM_API_KEY`` (or
     ``GROQ_API_KEY``), ``LLM_API_URL`` and ``LLM_MODEL``.
     """
 

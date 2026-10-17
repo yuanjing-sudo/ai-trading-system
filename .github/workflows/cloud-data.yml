@@ -10,7 +10,7 @@ on:
         required: false
         default: ""
       model:
-        description: "LLM model id (default: llama-3.3-70b-versatile on Groq)"
+        description: "LLM model id (default: openai/gpt-oss-120b on Groq)"
         required: false
         default: ""
 
@@ -43,7 +43,7 @@ jobs:
       - name: Generate cloud snapshot
         env:
           LLM_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          LLM_MODEL: ${{ github.event.inputs.model || vars.LLM_MODEL || 'llama-3.3-70b-versatile' }}
+          LLM_MODEL: ${{ github.event.inputs.model || vars.LLM_MODEL || 'openai/gpt-oss-120b' }}
           LLM_DEBUG: "1"
         run: |
           if [ -n "${{ github.event.inputs.tickers }}" ]; then
