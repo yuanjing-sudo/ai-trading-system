@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-17T06:44:30.144006Z",
+  "generated_at": "2026-10-17T06:55:28.788567Z",
   "universe": [
     {
       "price": 343.46,
@@ -18,7 +18,7 @@
         "score": 0.721,
         "suggested_weight": 0.25,
         "summary": "Team vote (technical_analyst: BUY; fundamentals_analyst: BUY; sentiment_analyst: HOLD), aggregated score +0.72. Risk: vol=26.8%, maxDD=-23.0%, VaR95=-2.01%; within all limits",
-        "llm": false
+        "llm": true
       }
     },
     {
@@ -38,7 +38,7 @@
         "score": 0.721,
         "suggested_weight": 0.25,
         "summary": "Team vote (technical_analyst: BUY; fundamentals_analyst: BUY; sentiment_analyst: HOLD), aggregated score +0.72. Risk: vol=37.0%, maxDD=-34.5%, VaR95=-2.81%; deep drawdown -34% -> halve exposure",
-        "llm": false
+        "llm": true
       }
     },
     {
@@ -58,7 +58,7 @@
         "score": -0.072,
         "suggested_weight": 0.072,
         "summary": "Team vote (technical_analyst: SELL; fundamentals_analyst: BUY; sentiment_analyst: HOLD), aggregated score -0.07. Risk: vol=38.9%, maxDD=-22.3%, VaR95=-3.70%; within all limits",
-        "llm": false
+        "llm": true
       }
     },
     {
@@ -78,7 +78,7 @@
         "score": -0.07,
         "suggested_weight": 0.07,
         "summary": "Team vote (technical_analyst: SELL; fundamentals_analyst: BUY; sentiment_analyst: HOLD), aggregated score -0.07. Risk: vol=34.5%, maxDD=-21.0%, VaR95=-2.53%; within all limits",
-        "llm": false
+        "llm": true
       }
     },
     {
@@ -98,7 +98,7 @@
         "score": -0.174,
         "suggested_weight": 0.174,
         "summary": "Team vote (technical_analyst: SELL; fundamentals_analyst: BUY; sentiment_analyst: HOLD), aggregated score -0.17. Risk: vol=35.9%, maxDD=-21.7%, VaR95=-2.79%; within all limits",
-        "llm": false
+        "llm": true
       }
     },
     {
@@ -118,7 +118,7 @@
         "score": 0.721,
         "suggested_weight": 0.25,
         "summary": "Team vote (technical_analyst: BUY; fundamentals_analyst: BUY; sentiment_analyst: HOLD), aggregated score +0.72. Risk: vol=46.0%, maxDD=-33.3%, VaR95=-3.64%; vol 46% exceeds cap 40% -> scale 0.87; deep drawdown -33% -> halve exposure",
-        "llm": false
+        "llm": true
       }
     },
     {
@@ -138,7 +138,7 @@
         "score": 0.436,
         "suggested_weight": 0.179,
         "summary": "Team vote (technical_analyst: BUY; fundamentals_analyst: HOLD; sentiment_analyst: HOLD), aggregated score +0.44. Risk: vol=48.8%, maxDD=-39.1%, VaR95=-4.16%; vol 49% exceeds cap 40% -> scale 0.82; deep drawdown -39% -> halve exposure",
-        "llm": false
+        "llm": true
       }
     },
     {
@@ -158,7 +158,7 @@
         "score": 0.274,
         "suggested_weight": 0.25,
         "summary": "Team vote (technical_analyst: HOLD; fundamentals_analyst: BUY; sentiment_analyst: HOLD), aggregated score +0.27. Risk: vol=12.1%, maxDD=-13.7%, VaR95=-1.36%; within all limits",
-        "llm": false
+        "llm": true
       }
     },
     {
@@ -178,16 +178,16 @@
         "score": -0.343,
         "suggested_weight": 0.25,
         "summary": "Team vote (technical_analyst: SELL; fundamentals_analyst: HOLD; sentiment_analyst: HOLD), aggregated score -0.34. Risk: vol=21.8%, maxDD=-15.7%, VaR95=-1.93%; within all limits",
-        "llm": false
+        "llm": true
       }
     },
     {
-      "price": 81508.5469,
-      "ret_1d": -0.007705,
-      "ret_20d": -0.034333,
-      "rsi14": 46.51,
-      "ma20": 83561.7898,
-      "ma50": 81252.0141,
+      "price": 81499.7578,
+      "ret_1d": -0.007812,
+      "ret_20d": -0.034437,
+      "rsi14": 46.48,
+      "ma20": 83561.3504,
+      "ma50": 81251.8383,
       "ann_vol": 0.3682,
       "high_52w": 86602.9141,
       "low_52w": 58558.8594,
@@ -198,16 +198,16 @@
         "score": 0.432,
         "suggested_weight": 0.216,
         "summary": "Team vote (technical_analyst: BUY; fundamentals_analyst: HOLD; sentiment_analyst: HOLD), aggregated score +0.43. Risk: vol=30.8%, maxDD=-53.1%, VaR95=-2.83%; deep drawdown -53% -> halve exposure",
-        "llm": false
+        "llm": true
       }
     },
     {
-      "price": 2429.51,
-      "ret_1d": -0.004495,
-      "ret_20d": -0.098583,
-      "rsi14": 39.23,
-      "ma20": 2586.5442,
-      "ma50": 2552.6402,
+      "price": 2429.1599,
+      "ret_1d": -0.004638,
+      "ret_20d": -0.098713,
+      "rsi14": 39.2,
+      "ma20": 2586.5266,
+      "ma50": 2552.6332,
       "ann_vol": 0.523,
       "high_52w": 2776.4683,
       "low_52w": 1564.8167,
@@ -218,7 +218,7 @@
         "score": -0.357,
         "suggested_weight": 0.164,
         "summary": "Team vote (technical_analyst: SELL; fundamentals_analyst: HOLD; sentiment_analyst: HOLD), aggregated score -0.36. Risk: vol=43.5%, maxDD=-66.6%, VaR95=-3.93%; vol 43% exceeds cap 40% -> scale 0.92; deep drawdown -67% -> halve exposure",
-        "llm": false
+        "llm": true
       }
     },
     {
@@ -238,7 +238,7 @@
         "score": -0.447,
         "suggested_weight": 0.25,
         "summary": "Team vote (technical_analyst: SELL; fundamentals_analyst: HOLD; sentiment_analyst: HOLD), aggregated score -0.45. Risk: vol=24.2%, maxDD=-26.4%, VaR95=-3.14%; within all limits",
-        "llm": false
+        "llm": true
       }
     },
     {
@@ -258,7 +258,7 @@
         "score": -0.447,
         "suggested_weight": 0.25,
         "summary": "Team vote (technical_analyst: SELL; fundamentals_analyst: HOLD; sentiment_analyst: HOLD), aggregated score -0.45. Risk: vol=9.8%, maxDD=-12.5%, VaR95=-1.03%; within all limits",
-        "llm": false
+        "llm": true
       }
     },
     {
@@ -278,7 +278,7 @@
         "score": 0.721,
         "suggested_weight": 0.25,
         "summary": "Team vote (technical_analyst: BUY; fundamentals_analyst: BUY; sentiment_analyst: HOLD), aggregated score +0.72. Risk: vol=26.9%, maxDD=-20.1%, VaR95=-2.61%; within all limits",
-        "llm": false
+        "llm": true
       }
     },
     {
@@ -298,16 +298,16 @@
         "score": -0.174,
         "suggested_weight": 0.174,
         "summary": "Team vote (technical_analyst: SELL; fundamentals_analyst: BUY; sentiment_analyst: HOLD), aggregated score -0.17. Risk: vol=20.0%, maxDD=-15.8%, VaR95=-2.39%; within all limits",
-        "llm": false
+        "llm": true
       }
     }
   ],
   "sources": {
     "yfinance": true,
     "llm": {
-      "backend": "ollama",
-      "configured_model": "qwen2.5-coder:7b",
-      "host": "http://localhost:11434"
+      "backend": "groq",
+      "configured_model": "llama-3.3-70b-versatile",
+      "host": "api.groq.com"
     }
   }
 }
