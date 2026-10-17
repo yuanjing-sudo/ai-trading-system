@@ -57,7 +57,7 @@ __all__ = [
     "ta_ema", "ta_sma", "ta_wma", "ta_hma", "ta_kama",
     "ta_vwma", "ta_alma", "ta_trix", "ta_dpo", "ta_cmo",
     "ta_coppock", "ta_ppo", "ta_pvo", "ta_rvi", "ta_elder",
-    "ta_choppiness", "ta_rvi_cross", "ta_kst", "ta_schaff",
+    "ta_choppiness", "ta_kst", "ta_schaff",
     "ta_fisher", "ta_ao", "ta_ac", "ta_squeeze", "ta_mass",
     "ta_vortex", "ta_hurst", "ta_entropy", "ta_fractdim",
     "ta_skew", "ta_kurt", "ta_zscore", "ta_percentile",
@@ -517,8 +517,8 @@ def ta_fisher(
 ) -> pd.DataFrame:
     """Fisher Transform via pandas-ta."""
     if PANDAS_TA_AVAILABLE:
-        result = pd.DataFrame(index=close.index, columns=close.columns, dtype="float64")
-        for col in close.columns:
+        result = pd.DataFrame(index=high.index, columns=high.columns, dtype="float64")
+        for col in high.columns:
             try:
                 out = ta.fisher(high=high[col], low=low[col], length=length)
                 if isinstance(out, pd.DataFrame):
@@ -534,8 +534,8 @@ def ta_fisher(
 def ta_ao(high: pd.DataFrame, low: pd.DataFrame, fast: int = 5, slow: int = 34) -> pd.DataFrame:
     """Awesome Oscillator via pandas-ta."""
     if PANDAS_TA_AVAILABLE:
-        result = pd.DataFrame(index=close.index, columns=close.columns, dtype="float64")
-        for col in close.columns:
+        result = pd.DataFrame(index=high.index, columns=high.columns, dtype="float64")
+        for col in high.columns:
             try:
                 out = ta.ao(high=high[col], low=low[col], fast=fast, slow=slow)
                 result[col] = out if isinstance(out, pd.Series) else out.iloc[:, 0]
@@ -548,8 +548,8 @@ def ta_ao(high: pd.DataFrame, low: pd.DataFrame, fast: int = 5, slow: int = 34) 
 def ta_ac(high: pd.DataFrame, low: pd.DataFrame) -> pd.DataFrame:
     """Accelerator Oscillator via pandas-ta."""
     if PANDAS_TA_AVAILABLE:
-        result = pd.DataFrame(index=close.index, columns=close.columns, dtype="float64")
-        for col in close.columns:
+        result = pd.DataFrame(index=high.index, columns=high.columns, dtype="float64")
+        for col in high.columns:
             try:
                 out = ta.ac(high=high[col], low=low[col])
                 result[col] = out if isinstance(out, pd.Series) else out.iloc[:, 0]
@@ -587,8 +587,8 @@ def ta_squeeze(
 def ta_mass(high: pd.DataFrame, low: pd.DataFrame, fast: int = 9, slow: int = 25) -> pd.DataFrame:
     """Mass Index via pandas-ta."""
     if PANDAS_TA_AVAILABLE:
-        result = pd.DataFrame(index=close.index, columns=close.columns, dtype="float64")
-        for col in close.columns:
+        result = pd.DataFrame(index=high.index, columns=high.columns, dtype="float64")
+        for col in high.columns:
             try:
                 out = ta.massi(high=high[col], low=low[col], fast=fast, slow=slow)
                 result[col] = out if isinstance(out, pd.Series) else out.iloc[:, 0]
@@ -693,8 +693,8 @@ def ta_parkinson(
 ) -> pd.DataFrame:
     """Parkinson Volatility via pandas-ta."""
     if PANDAS_TA_AVAILABLE:
-        result = pd.DataFrame(index=close.index, columns=close.columns, dtype="float64")
-        for col in close.columns:
+        result = pd.DataFrame(index=high.index, columns=high.columns, dtype="float64")
+        for col in high.columns:
             try:
                 out = ta.parkinson(high=high[col], low=low[col], length=length, annualize=annualize)
                 result[col] = out if isinstance(out, pd.Series) else out.iloc[:, 0]

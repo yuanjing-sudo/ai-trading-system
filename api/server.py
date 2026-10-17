@@ -95,7 +95,7 @@ CURRENCY_SYMBOLS = {
 
 
 def _load_universes():
-    global STOCK_UNIVERSE, CRYPTO_UNIVERSE, ETF_UNIVERSE, FOREX_UNIVERSE, COMMODITY_UNIVERSE
+    global CRYPTO_UNIVERSE, ETF_UNIVERSE, FOREX_UNIVERSE, COMMODITY_UNIVERSE
     try:
         import yfinance as yf
         tickers = yf.Tickers('')
@@ -400,7 +400,6 @@ async def _fetch_stock_indicators(symbol: str) -> Dict:
 
 
 async def _fetch_currency_rates() -> Dict[str, float]:
-    global CURRENCY_RATES
     try:
         pairs = ["EURUSD=X", "GBPUSD=X", "USDJPY=X", "USDCHF=X", "USDCAD=X", "AUDUSD=X", "USDCNY=X", "USDINR=X", "USDKRW=X", "USDSGD=X", "USDMXN=X", "USDBRL=X"]
         data = _fetcher.fetch(pairs, "2024-12-01", "2024-12-31")

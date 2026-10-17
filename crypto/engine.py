@@ -37,7 +37,7 @@ from sklearn.ensemble import (
 )
 from sklearn.linear_model import (
     Ridge, LogisticRegression, SGDClassifier, HuberRegressor,
-    BayesianRidge, ElasticNet, Lasso,
+    BayesianRidge, ElasticNet, Lasso, QuantileRegressor,
 )
 from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler
 from sklearn.isotonic import IsotonicRegression
