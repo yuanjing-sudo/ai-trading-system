@@ -43,6 +43,10 @@ GITHUB_MODELS_URL = os.environ.get(
     "GITHUB_MODELS_URL",
     "https://models.github.ai/inference/chat/completions",
 )
+GITHUB_MODELS_URL_FALLBACK = os.environ.get(
+    "GITHUB_MODELS_URL_FALLBACK",
+    "https://models.inference.ai.azure.com/chat/completions",
+)
 GITHUB_MODELS_MODEL = os.environ.get("GITHUB_MODELS_MODEL", "openai/gpt-4o-mini")
 GITHUB_MODELS_TOKEN = (
     os.environ.get("GITHUB_MODELS_TOKEN") or os.environ.get("GITHUB_TOKEN") or ""
@@ -108,10 +112,56 @@ class GitHubModelsClient:
         self.model = model
         self.host = "models.github.ai"
         self.timeout = timeout
+        self.debug = bool(os.environ.get("GITHUB_MODELS_DEBUG"))
 
     @property
     def available(self) -> bool:
         return bool(self.token)
+
+    def _log(self, message: str) -> None:
+        if self.debug:
+            sys.stderr.write(f"[github-models] {message}\n")
+
+    def _attempt(self, url: str, payload: bytes) -> tuple[str | None, bool]:
+        """Returns (content, hit_rate_limit)."""
+        req = urllib.request.Request(
+            url, data=payload,
+            headers={
+                "Authorization": f"Bearer {self.token}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "X-GitHub-Api-Version": "2022-11-28",
+                "User-Agent": "ai-trading-system/1.0",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                raw = resp.read()
+                status = resp.status
+            try:
+                data = json.loads(raw.decode("utf-8"))
+            except Exception:
+                self._log(f"non-JSON HTTP {status} from {url}: {raw[:200]!r}")
+                return None, False
+            choices = data.get("choices") or []
+            if choices:
+                content = (choices[0].get("message") or {}).get("content", "")
+                if content and content.strip():
+                    return content.strip(), False
+            self._log(f"no choices in response: {str(data)[:200]}")
+            return None, False
+        except urllib.error.HTTPError as exc:
+            try:
+                body = exc.read().decode("utf-8", "replace")[:300]
+            except Exception:
+                body = ""
+            self._log(f"HTTP {exc.code} from {url}: {body}")
+            if exc.code == 429:
+                return None, True
+            return None, False
+        except Exception as exc:
+            self._log(f"{type(exc).__name__} from {url}: {exc}")
+            return None, False
 
     def generate(self, prompt: str, system: str = "", temperature: float = 0.2) -> str | None:
         if not self.available:
@@ -126,39 +176,18 @@ class GitHubModelsClient:
             "temperature": temperature,
             "max_tokens": 400,
         }).encode("utf-8")
+        urls = [GITHUB_MODELS_URL]
+        if GITHUB_MODELS_URL_FALLBACK and GITHUB_MODELS_URL_FALLBACK not in urls:
+            urls.append(GITHUB_MODELS_URL_FALLBACK)
         for attempt in (1, 2):
-            req = urllib.request.Request(
-                GITHUB_MODELS_URL, data=payload,
-                headers={
-                    "Authorization": f"Bearer {self.token}",
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                    "X-GitHub-Api-Version": "2022-11-28",
-                },
-            )
-            try:
-                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                    data = json.loads(resp.read().decode("utf-8"))
-                choices = data.get("choices") or []
-                if choices:
-                    content = (choices[0].get("message") or {}).get("content", "")
-                    return content.strip() or None
-                return None
-            except urllib.error.HTTPError as exc:
-                if os.environ.get("GITHUB_MODELS_DEBUG"):
-                    try:
-                        body = exc.read().decode("utf-8", "replace")[:300]
-                    except Exception:
-                        body = ""
-                    sys.stderr.write(f"[github-models] HTTP {exc.code}: {body}\n")
-                if exc.code == 429 and attempt == 1:
-                    time.sleep(25)
-                    continue
-                return None
-            except Exception as exc:
-                if os.environ.get("GITHUB_MODELS_DEBUG"):
-                    sys.stderr.write(f"[github-models] {type(exc).__name__}: {exc}\n")
-                return None
+            rate_limited = False
+            for url in urls:
+                content, hit_limit = self._attempt(url, payload)
+                if content:
+                    return content
+                rate_limited = rate_limited or hit_limit
+            if rate_limited and attempt == 1:
+                time.sleep(20)
         return None
 
 

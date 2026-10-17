@@ -41,6 +41,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install yfinance pandas numpy requests
 
+      - name: Probe GitHub Models endpoint
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          curl -sS -i -X POST https://models.github.ai/inference/chat/completions \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            -d '{"model":"openai/gpt-4o-mini","messages":[{"role":"user","content":"Say OK"}],"max_tokens":5}' | head -c 700
+          echo
+
       - name: Generate cloud snapshot
         env:
           GITHUB_TOKEN: ${{ github.token }}
