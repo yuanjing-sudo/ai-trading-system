@@ -65,7 +65,16 @@ def test_integrations_registry_has_100_repos():
         assert repo.category
 
 
-def test_integrations_agents_offline_fallback():
+def test_integrations_agents_offline_fallback(monkeypatch):
+    import integrations.agents as agents_mod
+
+    class _NoLLM:
+        available = False
+
+        def generate(self, *args, **kwargs):
+            return None
+
+    monkeypatch.setattr(agents_mod, "_LLM", _NoLLM())
     from integrations.agents import analyze_symbol
 
     df = _synthetic_ohlcv()
