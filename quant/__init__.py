@@ -264,7 +264,22 @@ from quant.optimizer import (
     combine_fold_results, summary_table,
 )
 
-__version__ = "3.1.0"
+from quant import (
+    indicators_ext,
+    ehlers,
+    candlesticks,
+    statistics_ext,
+    features_ext,
+    patterns_ext,
+    metrics_ext,
+    risk_ext,
+    strategies_ext,
+    portfolio_ext,
+    screener_ext,
+    catalog,
+)
+
+__version__ = "3.2.0"
 
 __all__ = [
     # Indicators
@@ -409,4 +424,8 @@ __all__ = [
     # Optimizer
     "ParameterGrid", "PurgedKFold", "WalkForwardOptimizer",
     "combine_fold_results", "summary_table",
+    # Extended modules (import via their submodule namespace)
+    "indicators_ext", "ehlers", "candlesticks", "statistics_ext",
+    "features_ext", "patterns_ext", "metrics_ext", "risk_ext",
+    "strategies_ext", "portfolio_ext", "screener_ext", "catalog",
 ]
