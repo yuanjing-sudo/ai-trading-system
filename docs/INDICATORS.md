@@ -9,14 +9,16 @@ Regenerate with `python scripts/generate_quant_docs.py`.
 | --- | --- |
 | candle | 90 |
 | chart_pattern | 62 |
+| execution | 54 |
 | feature | 66 |
 | indicator | 262 |
 | metric | 81 |
+| option | 63 |
 | portfolio | 50 |
 | risk | 66 |
 | statistic | 87 |
 | strategy | 66 |
-| **Total** | **830** |
+| **Total** | **947** |
 
 ## Close-only indicators (134)
 

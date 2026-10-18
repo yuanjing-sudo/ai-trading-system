@@ -24,6 +24,8 @@ MODULE_BLURB = {
     "risk_ext": "Risk analytics: tail/VaR, portfolio risk contributions, allocation, stress tests, sizing, regime and correlation diagnostics.",
     "strategies_ext": "66 trading strategies across trend, mean-reversion, momentum, volatility, volume, pattern and composite families.",
     "portfolio_ext": "Portfolio construction: weight estimators, covariance estimators, rebalancing, attribution and reporting.",
+    "options": "Options analytics: Black-Scholes pricing and Greeks, implied volatility, binomial American pricing, vol surface helpers, strategy payoffs, risk-neutral density.",
+    "execution_ext": "Execution and TCA: TWAP/VWAP/POV scheduling, arrival/interval benchmarks, implementation shortfall, spread/microprice estimators, order-flow imbalance, impact approximations.",
     "screener_ext": "Universe screening and scanning across symbols, metrics and strategies.",
 }
 
@@ -123,6 +125,7 @@ def write_new_features_md() -> Path:
         ("statistics_ext", "statistic"), ("features_ext", "feature"),
         ("metrics_ext", "metric"), ("risk_ext", "risk"),
         ("portfolio_ext", "portfolio"), ("strategies_ext", "strategy"),
+        ("options", "option"), ("execution_ext", "execution"),
     ]
     for module, kind in mapping:
         mod = __import__(f"quant.{module}", fromlist=["x"])

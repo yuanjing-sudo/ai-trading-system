@@ -17,8 +17,10 @@ Regenerate with `python scripts/generate_quant_docs.py`.
 | `quant.risk_ext` | risk | 66 |
 | `quant.portfolio_ext` | portfolio | 50 |
 | `quant.strategies_ext` | strategy | 66 |
+| `quant.options` | option | 63 |
+| `quant.execution_ext` | execution | 54 |
 | `quant.screener_ext` | scanner | 44 |
-| `quant.catalog` | registry | 830 |
+| `quant.catalog` | registry | 947 |
 
 ## Module details
 
@@ -657,6 +659,137 @@ Portfolio construction: weight estimators, covariance estimators, rebalancing, a
 | `vwap_reversion` | `vwap_reversion(df: 'pd.DataFrame', window: 'int' = 20, band: 'float' = 0.02)` | Fade deviations from a rolling volume-weighted average price. |
 | `williams_reversal` | `williams_reversal(df: 'pd.DataFrame', period: 'int' = 14, lower: 'float' = -80.0, upper: 'float' = -20.0, exit_mid: 'float' = -50.0)` | Williams %R reversal at overbought/oversold extremes. |
 | `zscore_reversion` | `zscore_reversion(df: 'pd.DataFrame', period: 'int' = 20, entry: 'float' = 2.0, exit_level: 'float' = 0.5)` | Enter on extreme price z-scores, exit back toward the mean. |
+
+### `quant.options`
+
+Options analytics: Black-Scholes pricing and Greeks, implied volatility, binomial American pricing, vol surface helpers, strategy payoffs, risk-neutral density.
+
+| Name | Signature | Description |
+| --- | --- | --- |
+| `bear_call_spread` | `bear_call_spread(low_strike, high_strike, qty=1)` | Bear call spread: short low-strike call, long high-strike call. |
+| `bear_put_spread` | `bear_put_spread(high_strike, low_strike, qty=1)` | Bear put spread: long high-strike put, short low-strike put. |
+| `binomial_tree` | `binomial_tree(spot: 'float', strike: 'float', t: 'float', r: 'float', sigma: 'float', steps: 'int' = 200, option_type: 'str' = 'call', american: 'bool' = False, q: 'float' = 0.0)` | Cox-Ross-Rubinstein binomial price (supports early American exercise). |
+| `black_scholes_greeks` | `black_scholes_greeks(spot: 'float', strike: 'float', t: 'float', r: 'float', sigma: 'float', option_type: 'str' = 'call', q: 'float' = 0.0, per_vol_point: 'bool' = True)` | Bundle of primary Greeks; vega/theta optionally scaled per vol-point/day. |
+| `black_scholes_price` | `black_scholes_price(spot: 'float', strike: 'float', t: 'float', r: 'float', sigma: 'float', option_type: 'str' = 'call', q: 'float' = 0.0)` | European Black-Scholes price with continuous dividend yield ``q``. |
+| `box_spread` | `box_spread(low_strike, high_strike, qty=1)` | Box spread using a call and a put spread between two strikes. |
+| `breeden_litzenberger` | `breeden_litzenberger(call_prices, strikes, t: 'float', r: 'float')` | Risk-neutral density from call prices: ``e^{rT} d^2C/dK^2``. |
+| `bs_delta` | `bs_delta(spot: 'float', strike: 'float', t: 'float', r: 'float', sigma: 'float', option_type: 'str' = 'call', q: 'float' = 0.0)` | Option delta (spot sensitivity). |
+| `bs_gamma` | `bs_gamma(spot: 'float', strike: 'float', t: 'float', r: 'float', sigma: 'float', q: 'float' = 0.0)` | Option gamma (delta sensitivity); identical for calls and puts. |
+| `bs_rho` | `bs_rho(spot: 'float', strike: 'float', t: 'float', r: 'float', sigma: 'float', option_type: 'str' = 'call', q: 'float' = 0.0)` | Option rho (rate sensitivity) per 1.0 change in ``r``. |
+| `bs_theta` | `bs_theta(spot: 'float', strike: 'float', t: 'float', r: 'float', sigma: 'float', option_type: 'str' = 'call', q: 'float' = 0.0)` | Option theta per year (divide by 365 for per-day). |
+| `bs_vega` | `bs_vega(spot: 'float', strike: 'float', t: 'float', r: 'float', sigma: 'float', q: 'float' = 0.0)` | Option vega for a 1.0 change in volatility (divide by 100 for per-vol-point). |
+| `bull_call_spread` | `bull_call_spread(low_strike, high_strike, qty=1)` | Bull call spread: long low-strike call, short high-strike call. |
+| `bull_put_spread` | `bull_put_spread(high_strike, low_strike, qty=1)` | Bull put spread: short high-strike put, long low-strike put. |
+| `butterfly` | `butterfly(low_strike, mid_strike, high_strike, qty=1)` | Long call butterfly: +1/-2/+1 at increasing strikes. |
+| `collar` | `collar(put_strike, call_strike, qty=1)` | Collar: long protective put + short covered call. |
+| `condor` | `condor(put_lo, put_hi, call_lo, call_hi, qty=1)` | Long condor: four calls spaced across strikes. |
+| `covered_call` | `covered_call(strike, qty=1)` | Covered call: short call against long stock (stock leg implied). |
+| `delta_hedge_shares` | `delta_hedge_shares(delta: 'float', contracts: 'int' = 1, contract_size: 'int' = 100)` | Shares required to delta-hedge ``contracts`` (negative delta offsets longs). |
+| `delta_to_strike` | `delta_to_strike(spot: 'float', t: 'float', r: 'float', sigma: 'float', delta: 'float', option_type: 'str' = 'call', q: 'float' = 0.0)` | Strike that produces a given BS delta. |
+| `discount_factor` | `discount_factor(r: 'float', t: 'float')` | Continuous-compounding discount factor ``exp(-r t)``. |
+| `expected_move` | `expected_move(spot: 'float', sigma: 'float', t: 'float', z: 'float' = 1.0)` | One-standard-deviation (or ``z``-sigma) price move over horizon ``t``. |
+| `forward_price` | `forward_price(spot: 'float', r: 'float', t: 'float', q: 'float' = 0.0)` | No-arbitrage forward price ``S e^{(r-q)t}``. |
+| `gamma_scalp_pnl` | `gamma_scalp_pnl(gamma: 'float', spot_move: 'float', theta_daily: 'float', days: 'float' = 1.0, contract_size: 'int' = 100)` | Approximate gamma-scalping PnL: ``0.5 gamma (dS)^2 - theta`` per contract block. |
+| `greeks_series` | `greeks_series(spot: 'pd.Series', strike, t, r: 'float', sigma, option_type: 'str' = 'call', q: 'float' = 0.0)` | Vectorized Greeks across a spot series (strike/sigma broadcastable). |
+| `implied_vol_bisection` | `implied_vol_bisection(market_price: 'float', spot: 'float', strike: 'float', t: 'float', r: 'float', option_type: 'str' = 'call', q: 'float' = 0.0, tol: 'float' = 1e-08, max_iter: 'int' = 200)` | Implied volatility by bisection on a wide volatility bracket. |
+| `implied_volatility` | `implied_volatility(market_price: 'float', spot: 'float', strike: 'float', t: 'float', r: 'float', option_type: 'str' = 'call', q: 'float' = 0.0, tol: 'float' = 1e-08, max_iter: 'int' = 100)` | Implied volatility by Newton-Raphson with a bisection fallback. |
+| `intrinsic_value` | `intrinsic_value(spot: 'float', strike: 'float', option_type: 'str' = 'call')` | Exercise value of the option. |
+| `inv_norm_cdf` | `inv_norm_cdf(p)` | Inverse standard normal CDF (Acklam rational approximation). |
+| `iron_butterfly` | `iron_butterfly(put_strike, call_strike, put_wing, call_wing, qty=1)` | Short iron butterfly: short straddle with long OTM wings. |
+| `iron_condor` | `iron_condor(put_lo, put_hi, call_lo, call_hi, qty=1)` | Short iron condor: short inner strangle, long outer wings. |
+| `log_moneyness` | `log_moneyness(spot: 'float', strike: 'float', sigma: 'float', t: 'float')` | Standardized log-moneyness ``ln(S/K) / (sigma sqrt(t))``. |
+| `moneyness` | `moneyness(spot: 'float', strike: 'float')` | Simple moneyness ``S / K``. |
+| `norm_cdf` | `norm_cdf(x)` | Standard normal CDF (vectorized). |
+| `norm_pdf` | `norm_pdf(x)` | Standard normal PDF (vectorized). |
+| `option_elasticity` | `option_elasticity(spot: 'float', strike: 'float', t: 'float', r: 'float', sigma: 'float', option_type: 'str' = 'call', q: 'float' = 0.0)` | Percent option move per percent underlying move (delta * S / price). |
+| `option_price` | `option_price(spot: 'float', strike: 'float', t: 'float', r: 'float', sigma: 'float', option_type: 'str' = 'call', q: 'float' = 0.0, engine: 'str' = 'bs', **kwargs)` | Dispatch to ``bs`` or ``binomial`` pricing. |
+| `parity_gap` | `parity_gap(call_price: 'float', put_price: 'float', spot: 'float', strike: 'float', t: 'float', r: 'float', q: 'float' = 0.0)` | Observed put-call parity violation ``C - P - (S e^{-q t} - K e^{-r t})``. |
+| `price_series` | `price_series(spot: 'pd.Series', strike, t, r: 'float', sigma, option_type: 'str' = 'call', q: 'float' = 0.0)` | Vectorized Black-Scholes prices across a spot series. |
+| `prob_itm` | `prob_itm(spot: 'float', strike: 'float', t: 'float', r: 'float', sigma: 'float', option_type: 'str' = 'call', q: 'float' = 0.0)` | Risk-neutral probability of finishing in the money. |
+| `prob_otm` | `prob_otm(spot: 'float', strike: 'float', t: 'float', r: 'float', sigma: 'float', option_type: 'str' = 'call', q: 'float' = 0.0)` | Risk-neutral probability of finishing out of the money. |
+| `prob_touch` | `prob_touch(spot: 'float', barrier: 'float', t: 'float', sigma: 'float', drift: 'float' = 0.0)` | Approximate probability a driftless lognormal touches ``barrier`` by ``t``. |
+| `profit_table` | `profit_table(legs, spot_range)` | Payoff, premium, and net PnL per spot level. |
+| `protective_put` | `protective_put(strike, qty=1)` | Protective put: long put against long stock. |
+| `put_call_parity` | `put_call_parity(call_price: 'float', spot: 'float', strike: 'float', t: 'float', r: 'float', q: 'float' = 0.0)` | Theoretical put price implied by call price via put-call parity. |
+| `ratio_spread` | `ratio_spread(low_strike, high_strike, ratio=2, option_type='call', qty=1)` | Ratio spread: long 1x low strike, short ``ratio`` high strike. |
+| `risk_neutral_density` | `risk_neutral_density(prices, strikes, t: 'float', r: 'float')` | Alias of :func:`breeden_litzenberger`. |
+| `risk_reversal` | `risk_reversal(put_strike, call_strike, qty=1)` | Risk reversal: long OTM call + short OTM put. |
+| `straddle` | `straddle(strike, premium_call=0.0, premium_put=0.0, qty=1)` | Long straddle: long call + long put at the same strike. |
+| `strangle` | `strangle(put_strike, call_strike, premium_call=0.0, premium_put=0.0, qty=1)` | Long strangle: long OTM put + long OTM call. |
+| `strategy_breakevens` | `strategy_breakevens(legs, spot_range)` | Approximate breakeven spots by locating payoff sign changes. |
+| `strategy_max_loss` | `strategy_max_loss(legs, spot_range)` | Minimum payoff minus net premium over the spot range. |
+| `strategy_max_profit` | `strategy_max_profit(legs, spot_range)` | Maximum payoff minus net premium over the spot range. |
+| `strategy_payoff` | `strategy_payoff(legs, spot_range)` | Expiry payoff of a leg list across a spot range (premium excluded). |
+| `strategy_value` | `strategy_value(legs, spot_range, t, r, sigma, q: 'float' = 0.0)` | Strategy value across spot range using Black-Scholes (premiums excluded). |
+| `strike_to_delta` | `strike_to_delta(spot: 'float', strike: 'float', t: 'float', r: 'float', sigma: 'float', option_type: 'str' = 'call', q: 'float' = 0.0)` | BS delta for a given strike. |
+| `synthetic_forward` | `synthetic_forward(strike, qty=1)` | Synthetic long forward: long call + short put at the same strike. |
+| `time_value` | `time_value(price: 'float', spot: 'float', strike: 'float', option_type: 'str' = 'call')` | Option price minus intrinsic value. |
+| `variance_swap_strike` | `variance_swap_strike(implied_vols, weights=None)` | Approximate variance-swap fair strike ``sqrt(E[sigma^2])`` from a vol strip. |
+| `vix_proxy` | `vix_proxy(implied_vols: 'pd.Series')` | Simple 30-day VIX-style proxy: mean of near-the-money implied vols. |
+| `vol_skew` | `vol_skew(vols: 'pd.Series', strikes: 'pd.Series | None' = None)` | 25-delta-style skew proxy: low-strike IV minus high-strike IV. |
+| `vol_smile` | `vol_smile(prices, spot: 'float', strikes, t: 'float', r: 'float', option_type: 'str' = 'call', q: 'float' = 0.0)` | Implied-volatility smile for a range of strikes. |
+| `vol_term_structure` | `vol_term_structure(vols_by_expiry: 'dict')` | Sort implied vols by expiry (keys = tenor in years or ordered labels). |
+
+### `quant.execution_ext`
+
+Execution and TCA: TWAP/VWAP/POV scheduling, arrival/interval benchmarks, implementation shortfall, spread/microprice estimators, order-flow imbalance, impact approximations.
+
+| Name | Signature | Description |
+| --- | --- | --- |
+| `abdi_ranaldo_spread` | `abdi_ranaldo_spread(open_, high, low, close)` | Abdi-Ranaldo close-high-low bid-ask spread estimator (decimal). |
+| `adverse_selection_cost` | `adverse_selection_cost(trade_price: 'float', mid_at_exec: 'float', mid_later: 'float', side: 'str' = 'buy')` | Effective minus realized spread (the adverse-selection component). |
+| `amihud_impact` | `amihud_impact(returns, dollar_volume)` | Amihud-style illiquidity: absolute return per unit dollar volume. |
+| `arrival_price` | `arrival_price(prices, index: 'int' = 0)` | Price at order arrival (decision) time. |
+| `back_loaded_schedule` | `back_loaded_schedule(order_size: 'float', n_slices: 'int', ramp: 'float' = 2.0)` | Exponentially back-loaded slicing (trade faster late). |
+| `bar_vwap` | `bar_vwap(bars: 'pd.DataFrame', price_col: 'str' = 'close', volume_col: 'str' = 'volume')` | Volume-weighted average price over bars. |
+| `bps_to_return` | `bps_to_return(bps: 'float')` | Convert basis points to a decimal return. |
+| `compare_execution` | `compare_execution(results: 'dict')` | Rank an {algo: trades-DataFrame} mapping by mean slippage and total cost. |
+| `corwin_schultz_spread` | `corwin_schultz_spread(high, low)` | Corwin-Schultz high-low bid-ask spread estimator (decimal). |
+| `cost_curve` | `cost_curve(order_sizes, adv: 'float', sigma: 'float', eta: 'float' = 0.1)` | Impact cost (bps) and participation across a range of order sizes. |
+| `depth_weighted_price` | `depth_weighted_price(bids, asks)` | Depth-weighted mid using ``[(price, size), ...]`` ladders for bids and asks. |
+| `effective_spread` | `effective_spread(trade_price: 'float', mid: 'float', side: 'str' = 'buy')` | Effective spread: ``2 * |trade - mid|`` signed cost. |
+| `execution_cost_bps` | `execution_cost_bps(arrival_pr: 'float', exec_pr: 'float', side: 'str' = 'buy')` | Signed execution cost in bps versus arrival price (positive = slippage). |
+| `execution_report` | `execution_report(trades: 'pd.DataFrame')` | Markdown TCA report from a trades table. |
+| `expected_cost` | `expected_cost(participation: 'float', spread_bps: 'float', sigma: 'float', horizon: 'float', impact_coeff: 'float' = 0.1)` | Heuristic expected cost in bps: half-spread + temporary impact. |
+| `fill_probability` | `fill_probability(distance: 'float', spread: 'float', volatility: 'float', horizon: 'float')` | Heuristic probability a passive order at ``distance`` fills within ``horizon``. |
+| `fill_rate` | `fill_rate(order_size: 'float', filled: 'float')` | Fraction of the order that was filled. |
+| `front_loaded_schedule` | `front_loaded_schedule(order_size: 'float', n_slices: 'int', decay: 'float' = 2.0)` | Exponentially front-loaded slicing (trade faster early). |
+| `implementation_shortfall` | `implementation_shortfall(decision_price: 'float', avg_exec_price: 'float', side: 'str', size: 'float', unfilled: 'float' = 0.0, close_price: 'float | None' = None)` | Implementation shortfall in dollars: executed slippage plus opportunity cost. |
+| `interval_vwap` | `interval_vwap(bars: 'pd.DataFrame', start: 'int' = 0, end: 'int | None' = None, price_col: 'str' = 'close', volume_col: 'str' = 'volume')` | VWAP over a bar interval ``[start, end)``. |
+| `kyle_lambda` | `kyle_lambda(prices, volume, window: 'int' = 50)` | Rolling Kyle's lambda: price impact per unit signed order flow. |
+| `lee_ready_classification` | `lee_ready_classification(trade_price, bid, ask)` | Lee-Ready trade classification using the quote midpoint rule. |
+| `limit_fill_probability` | `limit_fill_probability(market_orders_per_bar: 'float', ahead_of_queue: 'float', bars: 'float')` | Approximate fill probability for a limit order given queue depth ahead. |
+| `linear_schedule` | `linear_schedule(order_size: 'float', n_slices: 'int')` | Equal-sized slicing of ``order_size`` across ``n_slices``. |
+| `market_impact_estimate` | `market_impact_estimate(order_notional: 'float', adv_notional: 'float', sigma: 'float', eta: 'float' = 0.1)` | Square-root market-impact estimate in bps given participation and daily vol. |
+| `microprice` | `microprice(bid: 'float', ask: 'float', bid_size: 'float', ask_size: 'float')` | Size-weighted microprice leaning toward the heavier book side. |
+| `mid_price` | `mid_price(bid: 'float', ask: 'float')` | Midpoint of the best bid and offer. |
+| `notional_from_shares` | `notional_from_shares(shares: 'float', price: 'float')` | Dollar notional of a share quantity at ``price``. |
+| `opportunity_cost` | `opportunity_cost(decision_price: 'float', close_price: 'float', side: 'str', unfilled: 'float')` | Cost of shares never filled, marked versus the decision price. |
+| `optimal_execution_horizon` | `optimal_execution_horizon(order_size: 'float', adv: 'float', participation: 'float' = 0.1)` | Days to complete ``order_size`` at ``participation`` of average daily volume. |
+| `order_book_imbalance` | `order_book_imbalance(bid_size: 'float', ask_size: 'float')` | Book imbalance in [-1, 1]; positive = bid-heavy. |
+| `order_size_from_notional` | `order_size_from_notional(notional: 'float', price: 'float')` | Shares required to reach a dollar notional at ``price``. |
+| `participation_curve` | `participation_curve(volume_profile, participation: 'float' = 0.1)` | Tradeable size per bar at a fixed participation rate. |
+| `participation_rate` | `participation_rate(filled: 'float', market_volume: 'float')` | Fraction of market volume traded. |
+| `pov_schedule` | `pov_schedule(order_size: 'float', volume_forecast, participation: 'float' = 0.1)` | Percent-of-volume schedule capped by ``participation`` of forecast volume. |
+| `price_improvement` | `price_improvement(exec_price: 'float', quote_price: 'float', side: 'str' = 'buy')` | Positive when executed better than the prevailing quote. |
+| `queue_depth` | `queue_depth(bid_size: 'float', ask_size: 'float')` | Summary of displayed depth on both sides. |
+| `quoted_spread` | `quoted_spread(bid: 'float', ask: 'float')` | Absolute quoted spread. |
+| `realized_spread` | `realized_spread(trade_price: 'float', mid_at_exec: 'float', mid_later: 'float', side: 'str' = 'buy')` | Realized spread capturing adverse selection (uses a later mid). |
+| `relative_spread` | `relative_spread(bid: 'float', ask: 'float')` | Quoted spread divided by mid (a decimal fraction). |
+| `return_to_bps` | `return_to_bps(ret: 'float')` | Convert a decimal return to basis points. |
+| `rolling_participation` | `rolling_participation(fills, market_volume, window: 'int' = 20)` | Rolling participation rate of fills versus market volume. |
+| `slice_order` | `slice_order(order_size: 'float', n_slices: 'int', ramp: 'str' = 'flat', decay: 'float' = 2.0)` | Dispatch to a slicing style: ``flat``, ``front``, or ``back``. |
+| `slippage_decomposition` | `slippage_decomposition(arrival_pr: 'float', exec_pr: 'float', interval_vwap: 'float', side: 'str' = 'buy')` | Split slippage into delay (arrival->interval) and trading (interval->fill) parts. |
+| `tca_summary` | `tca_summary(trades: 'pd.DataFrame', arrival_col: 'str' = 'arrival_price', exec_col: 'str' = 'exec_price', size_col: 'str' = 'size', vwap_col: 'str | None' = 'vwap')` | Per-trade VWAP/arrival slippage (bps) and signed dollar cost. |
+| `tick_classification` | `tick_classification(prices)` | Uptick/downtick classification: 1 buy, -1 sell, 0 unchanged. |
+| `trade_imbalance` | `trade_imbalance(buy_volume: 'float', sell_volume: 'float')` | Signed trade imbalance in [-1, 1]. |
+| `twap_error` | `twap_error(exec_price: 'float', benchmark_twap: 'float', side: 'str' = 'buy')` | Bps of execution versus the TWAP benchmark. |
+| `twap_from_bars` | `twap_from_bars(bars: 'pd.DataFrame', price_col: 'str' = 'close')` | Simple average of the price column (TWAP over the bars). |
+| `twap_schedule` | `twap_schedule(order_size: 'float', n_slices: 'int')` | Time-weighted average price schedule (flat slices over time). |
+| `volume_profile` | `volume_profile(volume, n_buckets: 'int' = 10)` | Aggregate intraday/bar volume into ``n_buckets`` normalized buckets. |
+| `vwap_error` | `vwap_error(exec_price: 'float', benchmark_vwap: 'float', side: 'str' = 'buy')` | Bps of execution versus the VWAP benchmark. |
+| `vwap_schedule` | `vwap_schedule(order_size: 'float', volume_profile)` | Volume-weighted schedule proportional to a forecast volume profile. |
+| `weighted_avg_price` | `weighted_avg_price(prices, sizes)` | Size-weighted average execution price. |
 
 ## Usage
 

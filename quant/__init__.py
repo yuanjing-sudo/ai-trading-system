@@ -275,11 +275,13 @@ from quant import (
     risk_ext,
     strategies_ext,
     portfolio_ext,
+    options,
+    execution_ext,
     screener_ext,
     catalog,
 )
 
-__version__ = "3.2.0"
+__version__ = "3.3.0"
 
 __all__ = [
     # Indicators
@@ -428,4 +430,5 @@ __all__ = [
     "indicators_ext", "ehlers", "candlesticks", "statistics_ext",
     "features_ext", "patterns_ext", "metrics_ext", "risk_ext",
     "strategies_ext", "portfolio_ext", "screener_ext", "catalog",
+    "options", "execution_ext",
 ]

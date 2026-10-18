@@ -215,3 +215,42 @@ def test_screener_ext(universe):
     scan = sc.strategy_scan(universe, ["sma_cross", "rsi_reversal"])
     assert scan.shape == (len(universe), 2)
     assert len(sc.screen_report(universe).splitlines()) == len(universe) + 2
+
+
+def test_options():
+    from quant import options as opt
+
+    c = opt.black_scholes_price(100, 100, 0.5, 0.04, 0.2, "call")
+    p = opt.black_scholes_price(100, 100, 0.5, 0.04, 0.2, "put")
+    assert abs(opt.parity_gap(c, p, 100, 100, 0.5, 0.04)) < 1e-9
+    assert abs(opt.implied_volatility(c, 100, 100, 0.5, 0.04, "call") - 0.2) < 1e-4
+    am = opt.binomial_tree(100, 100, 0.5, 0.04, 0.2, 200, "put", american=True)
+    eu = opt.binomial_tree(100, 100, 0.5, 0.04, 0.2, 200, "put", american=False)
+    assert am >= eu - 1e-6
+    g = opt.black_scholes_greeks(100, 100, 0.5, 0.04, 0.2, "call")
+    assert 0.0 < g["delta"] < 1.0 and abs(g["delta"] - 0.584) < 0.01
+    legs = opt.butterfly(90, 100, 110)
+    assert opt.strategy_max_loss(legs, np.linspace(50, 150, 2001)) >= -1e-9
+    strikes = np.linspace(40, 180, 400)
+    prices = [opt.black_scholes_price(100, k, 0.5, 0.04, 0.2, "call") for k in strikes]
+    dens = opt.breeden_litzenberger(prices, strikes, 0.5, 0.04)
+    assert dens.min() >= -1e-9
+    assert opt.greeks_series(pd.Series([95, 100, 105]), 100, 0.5, 0.04, 0.2).shape == (3, 6)
+
+
+def test_execution_ext(df):
+    from quant import execution_ext as ex
+
+    assert abs(float(ex.twap_schedule(10000, 5).sum()) - 10000) < 1e-9
+    assert abs(float(ex.vwap_schedule(1000, df["volume"].iloc[:10]).sum()) - 1000) < 1e-6
+    assert abs(ex.execution_cost_bps(100.0, 100.05, "buy") - 5.0) < 1e-6
+    assert ex.execution_cost_bps(100.0, 100.05, "sell") < 0
+    assert ex.fill_rate(1000, 250) == 0.25
+    cs = ex.corwin_schultz_spread(df["high"], df["low"]).dropna()
+    assert (cs >= 0).all()
+    assert abs(ex.mid_price(99, 101) - 100.0) < 1e-9
+    assert ex.order_book_imbalance(300, 100) == 0.5
+    trades = pd.DataFrame({"side": ["buy"], "arrival_price": [100.0],
+                           "exec_price": [100.02], "size": [1000]})
+    assert "slippage_bps" in ex.tca_summary(trades).columns
+    assert abs(float(ex.volume_profile(df["volume"], 5).sum()) - 1.0) < 1e-9

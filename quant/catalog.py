@@ -22,10 +22,12 @@ import inspect
 from quant import (
     candlesticks,
     ehlers,
+    execution_ext,
     features_ext,
     indicators,
     indicators_ext,
     metrics_ext,
+    options,
     patterns_ext,
     portfolio_ext,
     risk_ext,
@@ -76,6 +78,8 @@ def _build() -> dict:
     catalog["metric"] = _collect(metrics_ext, "metric")
     catalog["risk"] = _collect(risk_ext, "risk")
     catalog["portfolio"] = _collect(portfolio_ext, "portfolio")
+    catalog["option"] = _collect(options, "option")
+    catalog["execution"] = _collect(execution_ext, "execution")
     catalog["strategy"] = {name: meta["func"] for name, meta in strategies_ext.STRATEGIES.items()}
     return catalog
 
