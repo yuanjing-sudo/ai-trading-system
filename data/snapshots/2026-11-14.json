@@ -1,0 +1,313 @@
+{
+  "generated_at": "2026-11-14T02:27:52.550727Z",
+  "universe": [
+    {
+      "price": 356.27,
+      "ret_1d": 0.003917,
+      "ret_20d": 0.038085,
+      "rsi14": 60.9,
+      "ma20": 345.9147,
+      "ma50": 338.7898,
+      "ann_vol": 0.2218,
+      "high_52w": 356.27,
+      "low_52w": 245.8435,
+      "ticker": "AAPL",
+      "agents": {
+        "decision": "BUY",
+        "confidence": 0.95,
+        "score": 0.844,
+        "suggested_weight": 0.25,
+        "summary": "All three analysts\u2014technical, fundamentals, and sentiment\u2014concur on a BUY recommendation. The portfolio\u2019s risk profile (volatility\u202f27.9%, max drawdown\u202f\u201113.8%, VaR95\u202f\u20112.01%) remains comfortably within our established limits. Accordingly, we approve a BUY position.",
+        "llm": true
+      }
+    },
+    {
+      "price": 523.88,
+      "ret_1d": 0.001683,
+      "ret_20d": -0.009772,
+      "rsi14": 48.82,
+      "ma20": 529.386,
+      "ma50": 518.9972,
+      "ann_vol": 0.276,
+      "high_52w": 555.8,
+      "low_52w": 352.167,
+      "ticker": "MSFT",
+      "agents": {
+        "decision": "BUY",
+        "confidence": 0.95,
+        "score": 0.838,
+        "suggested_weight": 0.25,
+        "summary": "All three analysts (technical, fundamentals, and sentiment) are aligned on a BUY recommendation. Risk metrics show elevated volatility (38.7%) and a recent deep drawdown of 34%, prompting a halving of position size to stay within risk limits. Accordingly, we approve a BUY stance with exposure reduced by 50% to manage downside risk.",
+        "llm": true
+      }
+    },
+    {
+      "price": 162.85,
+      "ret_1d": -0.020097,
+      "ret_20d": -0.239481,
+      "rsi14": 24.86,
+      "ma20": 198.6885,
+      "ma50": 214.632,
+      "ann_vol": 0.4348,
+      "high_52w": 239.24,
+      "low_52w": 162.85,
+      "ticker": "NVDA",
+      "agents": {
+        "decision": "HOLD",
+        "confidence": 0.474,
+        "score": -0.174,
+        "suggested_weight": 0.083,
+        "summary": "The portfolio faces mixed signals\u2014technical analysis recommends a sell, fundamentals a buy, and sentiment a hold\u2014so no clear directional bias emerges. Risk metrics exceed limits (volatility 41.8%\u202f>\u202f40% \u2192 scale to 96% of target, and max drawdown 31.9% \u2192 halve exposure), forcing a reduction in net position. Consequently, we maintain a HOLD stance pending clearer guidance.",
+        "llm": true
+      }
+    },
+    {
+      "price": 295.77,
+      "ret_1d": -0.009809,
+      "ret_20d": -0.131595,
+      "rsi14": 40.58,
+      "ma20": 303.4165,
+      "ma50": 328.1858,
+      "ann_vol": 0.3493,
+      "high_52w": 402.1212,
+      "low_52w": 273.1612,
+      "ticker": "GOOGL",
+      "agents": {
+        "decision": "HOLD",
+        "confidence": 0.35,
+        "score": -0.05,
+        "suggested_weight": 0.025,
+        "summary": "The technical analyst\u2019s bearish signal is offset by bullish fundamentals and sentiment, creating a mixed outlook for the position. However, risk metrics\u2014volatility at 36.3%, a max drawdown of \u201330.6% and a recent \u201331% deep drawdown\u2014trigger the risk policy to cut exposure by 50%. Accordingly, we will hold the position while halving its size to stay within risk tolerances.",
+        "llm": true
+      }
+    },
+    {
+      "price": 266.66,
+      "ret_1d": -0.002917,
+      "ret_20d": 0.06664,
+      "rsi14": 57.43,
+      "ma20": 257.3345,
+      "ma50": 254.8116,
+      "ann_vol": 0.3149,
+      "high_52w": 284.02,
+      "low_52w": 198.79,
+      "ticker": "AMZN",
+      "agents": {
+        "decision": "BUY",
+        "confidence": 0.95,
+        "score": 0.844,
+        "suggested_weight": 0.25,
+        "summary": "All three analysts\u2014technical, fundamentals, and sentiment\u2014concur on a BUY recommendation for the security. Risk metrics are comfortably within our thresholds, with volatility at 38.9%, maximum drawdown at \u201321.7%, and VaR95 at \u20132.86%. Accordingly, the portfolio committee approves a BUY position.",
+        "llm": true
+      }
+    },
+    {
+      "price": 623.61,
+      "ret_1d": -0.008207,
+      "ret_20d": -0.153532,
+      "rsi14": 42.12,
+      "ma20": 640.4445,
+      "ma50": 679.0733,
+      "ann_vol": 0.4442,
+      "high_52w": 777.59,
+      "low_52w": 524.819,
+      "ticker": "META",
+      "agents": {
+        "decision": "HOLD",
+        "confidence": 0.474,
+        "score": -0.174,
+        "suggested_weight": 0.074,
+        "summary": "The technical analyst signals a sell, the fundamentals analyst recommends a buy, and sentiment remains neutral, yielding a mixed outlook. Risk metrics show volatility at 46.7% (exceeding the 40% cap, requiring a 0.86 scaling) and a deep drawdown of \u201333.3%, prompting a 50% reduction in exposure. Given the conflicting signals and heightened risk, the committee will hold the current position while applying the scaled\u2011down exposure.",
+        "llm": true
+      }
+    },
+    {
+      "price": 390.22,
+      "ret_1d": -0.018191,
+      "ret_20d": 0.100079,
+      "rsi14": 53.54,
+      "ma20": 385.3605,
+      "ma50": 374.7406,
+      "ann_vol": 0.4768,
+      "high_52w": 489.88,
+      "low_52w": 298.32,
+      "ticker": "TSLA",
+      "agents": {
+        "decision": "BUY",
+        "confidence": 0.747,
+        "score": 0.447,
+        "suggested_weight": 0.172,
+        "summary": "The technical analyst\u2019s strong BUY signal outweighs the neutral fundamentals and sentiment views, prompting a bullish stance on the security. However, risk metrics reveal a volatility breach (52%\u202fvs\u202f40% cap) requiring a 0.77 scaling factor, and a severe drawdown of \u201339% mandates halving the exposure. After applying both risk adjustments, we proceed with a scaled\u2011down BUY position.",
+        "llm": true
+      }
+    },
+    {
+      "price": 754.37,
+      "ret_1d": -0.003632,
+      "ret_20d": -0.011634,
+      "rsi14": 47.14,
+      "ma20": 759.0215,
+      "ma50": 764.0882,
+      "ann_vol": 0.1482,
+      "high_52w": 779.09,
+      "low_52w": 628.7847,
+      "ticker": "SPY",
+      "agents": {
+        "decision": "HOLD",
+        "confidence": 0.474,
+        "score": -0.174,
+        "suggested_weight": 0.174,
+        "summary": "The technical analyst signals a sell, the fundamentals analyst signals a buy, and sentiment remains neutral. Risk metrics show 14.3% volatility, an 8.9% max drawdown, and a 1.42% VaR95, all comfortably within our limits. Accordingly, we will maintain a HOLD position.",
+        "llm": true
+      }
+    },
+    {
+      "price": 679.89,
+      "ret_1d": -0.012032,
+      "ret_20d": -0.042139,
+      "rsi14": 42.82,
+      "ma20": 695.4485,
+      "ma50": 717.7187,
+      "ann_vol": 0.2396,
+      "high_52w": 759.66,
+      "low_52w": 557.0867,
+      "ticker": "QQQ",
+      "agents": {
+        "decision": "SELL",
+        "confidence": 0.624,
+        "score": -0.324,
+        "suggested_weight": 0.25,
+        "summary": "The technical analyst\u2019s SELL signal dominates the mixed HOLD and BUY views, and with volatility at 24.9% and max drawdown at \u201314.8% both comfortably within our risk thresholds, the portfolio can tolerate a short\u2011term downside. Risk metrics (VaR95\u202f=\u202f\u20131.96%) confirm that the potential loss is limited and acceptable under current limits. Accordingly, we will execute a SELL order to reduce exposure in this position.",
+        "llm": true
+      }
+    },
+    {
+      "price": 67105.2812,
+      "ret_1d": -0.059399,
+      "ret_20d": -0.169395,
+      "rsi14": 23.54,
+      "ma20": 76528.2375,
+      "ma50": 80512.347,
+      "ann_vol": 0.3401,
+      "high_52w": 86602.9141,
+      "low_52w": 58558.8594,
+      "ticker": "BTC-USD",
+      "agents": {
+        "decision": "SELL",
+        "confidence": 0.624,
+        "score": -0.324,
+        "suggested_weight": 0.162,
+        "summary": "The technical analyst\u2019s strong SELL signal, combined with a 33% volatility, a 49% max drawdown and a VaR95 of \u20133.11%, indicates heightened downside risk that warrants immediate de\u2011risking. While fundamentals suggest a HOLD and sentiment leans BUY, the risk manager\u2019s recommendation to halve exposure due to the deep drawdown overrides these views. Accordingly, we will execute a partial sell\u2011off to reduce position size by 50% and position the portfolio for a potential re\u2011entry on improved risk metrics.",
+        "llm": true
+      }
+    },
+    {
+      "price": 1891.8,
+      "ret_1d": -0.061993,
+      "ret_20d": -0.197013,
+      "rsi14": 23.58,
+      "ma20": 2214.2918,
+      "ma50": 2412.9948,
+      "ann_vol": 0.4115,
+      "high_52w": 2776.4683,
+      "low_52w": 1564.8167,
+      "ticker": "ETH-USD",
+      "agents": {
+        "decision": "SELL",
+        "confidence": 0.747,
+        "score": -0.447,
+        "suggested_weight": 0.198,
+        "summary": "The technical analyst\u2019s strong SELL signal, combined with neutral fundamentals and sentiment, is outweighed by the risk profile, which shows volatility at 45.2% (exceeding the 40% cap) and a historic drawdown of \u201363.1%, triggering a 0.89 volatility scaling and a 50% exposure reduction. After applying these risk\u2011adjusted constraints, the portfolio\u2019s net exposure falls well below target levels, reinforcing the need to exit the position. Accordingly, the committee recommends a full SELL of the asset.",
+        "llm": true
+      }
+    },
+    {
+      "price": 355.45,
+      "ret_1d": 0.001578,
+      "ret_20d": -0.069527,
+      "rsi14": 37.91,
+      "ma20": 368.7835,
+      "ma50": 380.906,
+      "ann_vol": 0.2428,
+      "high_52w": 495.9,
+      "low_52w": 354.89,
+      "ticker": "GLD",
+      "agents": {
+        "decision": "SELL",
+        "confidence": 0.624,
+        "score": -0.324,
+        "suggested_weight": 0.25,
+        "summary": "Analyst consensus is mixed\u2014technical recommends SELL, fundamentals suggest HOLD, and sentiment leans BUY. Risk metrics are within limits (vol\u202f25.4%, max\u202fDD\u202f\u201128.4%, VaR95\u202f\u20113.14%). Accordingly, we will execute a sell order on the position.",
+        "llm": true
+      }
+    },
+    {
+      "price": 79.38,
+      "ret_1d": -0.004265,
+      "ret_20d": -0.004196,
+      "rsi14": 40.74,
+      "ma20": 80.9226,
+      "ma50": 79.8255,
+      "ann_vol": 0.1082,
+      "high_52w": 87.7253,
+      "low_52w": 76.7868,
+      "ticker": "TLT",
+      "agents": {
+        "decision": "HOLD",
+        "confidence": 0.3,
+        "score": 0.0,
+        "suggested_weight": 0.0,
+        "summary": "All three analysts\u2014technical, fundamentals, and sentiment\u2014concur on a HOLD recommendation, reflecting a balanced view across market signals, valuation, and investor mood. Risk metrics remain comfortably within our thresholds, with volatility at 10.2%, maximum drawdown at \u201312.5%, and VaR95 at \u20131.06%. Accordingly, we will maintain current positions without adjustments.",
+        "llm": true
+      }
+    },
+    {
+      "price": 170.59,
+      "ret_1d": 0.004771,
+      "ret_20d": -0.046877,
+      "rsi14": 48.24,
+      "ma20": 175.3265,
+      "ma50": 169.3786,
+      "ann_vol": 0.264,
+      "high_52w": 187.25,
+      "low_52w": 112.258,
+      "ticker": "XOM",
+      "agents": {
+        "decision": "BUY",
+        "confidence": 0.95,
+        "score": 0.818,
+        "suggested_weight": 0.25,
+        "summary": "All three analysts\u2014technical, fundamentals, and sentiment\u2014recommend a BUY. Risk metrics are comfortably within limits (vol\u202f26.2%, max\u202fDD\u202f\u201120.1%, VaR95\u202f\u20112.84%). Accordingly, we approve a BUY allocation.",
+        "llm": true
+      }
+    },
+    {
+      "price": 346.19,
+      "ret_1d": 0.00983,
+      "ret_20d": 0.019045,
+      "rsi14": 56.33,
+      "ma20": 339.045,
+      "ma50": 339.7039,
+      "ann_vol": 0.2029,
+      "high_52w": 363.3672,
+      "low_52w": 278.7472,
+      "ticker": "JPM",
+      "agents": {
+        "decision": "BUY",
+        "confidence": 0.795,
+        "score": 0.495,
+        "suggested_weight": 0.25,
+        "summary": "The technical and fundamentals analysts both recommend a BUY, while sentiment is the outlier with a SELL, yielding an overall BUY consensus. Risk metrics remain comfortably within our thresholds (volatility\u202f21.2%, max drawdown\u202f\u201115.5%, VaR95\u202f\u20112.39%). Accordingly, we approve a BUY position for the portfolio.",
+        "llm": true
+      }
+    }
+  ],
+  "sources": {
+    "yfinance": true,
+    "llm": {
+      "backend": "groq",
+      "configured_model": "openai/gpt-oss-120b",
+      "host": "api.groq.com"
+    }
+  }
+}
